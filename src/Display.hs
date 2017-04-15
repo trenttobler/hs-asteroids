@@ -9,23 +9,26 @@ import Data.IORef
 import Shapes
 import Asteroid
 import GLConverters
-import Rand
-
-black = Color3 (0::GLfloat) 0 0
-acolor = Color3 (0.5::GLfloat) 0.7 1.0
 
 posAsters::[(GLfloat,GLfloat,Asteroid)]
 posAsters = [
   ( 0.0, 0.0,  asteroid 0 0.100),
   ( 0.6, 0.6,  asteroid 1 0.100),
   (-0.9, 0.9,  asteroid 2 0.050),
-  (-0.5,-0.5,  asteroid 3 0.025) ]
+  (-0.5,-0.5,  asteroid 3 0.025),
+  ( 1.0,-1.0,  asteroid 4 0.0125) ]
 
-display :: IORef GLfloat -> IORef (GLfloat, GLfloat) -> IORef Int -> DisplayCallback
-display angle pos n = do 
-  anum <- get n
+display :: IORef GLfloat -> IORef (GLfloat, GLfloat) -> IORef Size -> DisplayCallback
+display angle pos size = do
   clear [ColorBuffer, DepthBuffer]
+  Size dx dy <- readIORef size
+
   loadIdentity
+  
+  if dx < dy
+    then scale 1 (fromIntegral dx / fromIntegral dy) (1.0::GLfloat)
+    else scale (fromIntegral dy / fromIntegral dx) 1 (1.0::GLfloat)
+
   (x',y') <- get pos
   translate $ Vector3 x' y' 0
   preservingMatrix $ do
