@@ -24,6 +24,9 @@ library
                      , GLConverters
                      , Game
                      , GameState
+                     , KeyBindings
+                     , KeyAction
+                     , GameOptions
   build-depends:       base >= 4.7 && < 5
                      , GLUT
                      , OpenGL
@@ -32,6 +35,8 @@ library
                      , random
                      , tf-random
                      , time
+                     , unordered-containers
+                     , hashable
   default-language:    Haskell2010
 
 executable asteroids-exe

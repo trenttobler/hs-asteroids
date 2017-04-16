@@ -17,5 +17,5 @@ main = do
     keyboardMouseCallback $= Just (keyboardMouse state)
     idleCallback $= Just (idle state)
     displayCallback $= display state
-    fullScreen
+    restoreScreen state
     mainLoop

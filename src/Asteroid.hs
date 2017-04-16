@@ -5,10 +5,10 @@ module Asteroid (
   asteroid
 ) where
 
-import           Graphics.Rendering.OpenGL
-import           System.Random
 import           GLConverters
+import           Graphics.Rendering.OpenGL
 import           Shapes
+import           System.Random
 
 newtype Asteroid = Asteroid (IO (), Int, Double)
 

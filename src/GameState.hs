@@ -2,32 +2,61 @@ module GameState (
   GameState,
   adjustAspectRatio,
   obscureAspectRatio,
-  defaultGameState,
   setAspectRatioSize,
   newGameState,
   getGame,
-  updateGame
+  updateGame,
+  getOptions,
+  setOptions,
+  performAction,
+  getKeyBindings,
+  setKeyBindings,
+  restoreScreen
 ) where
 
 import           Data.IORef
 import           Game
+import           GameOptions
 import           GLConverters
 import           Graphics.UI.GLUT
+import           KeyAction
+import           KeyBindings
 import           Shapes
+import           System.Exit
+import           System.IO
 
-newtype GameState = GameState (IORef AspectRatio, IORef Game)
+-- Need to learn how to do lenses so this is easier to do.
+newtype GameState = GameState (
+  IORef AspectRatio,
+  IORef Game,
+  IORef GameOptions,
+  IORef KeyBindings )
+
+getKeyBindings :: GameState -> IO KeyBindings
+getKeyBindings (GameState (_,_,_,obind)) = readIORef obind
+
+setKeyBindings :: GameState -> KeyBindings -> IO ()
+setKeyBindings (GameState (_,_,_,obind)) = writeIORef obind
+
+getOptions :: GameState -> IO GameOptions
+getOptions (GameState (_,_,oref,_)) = readIORef oref
+
+setOptions :: GameState -> GameOptions -> IO ()
+setOptions (GameState (_,_,oref,_)) = writeIORef oref
 
 newGameState :: IO GameState
 newGameState = do
   aspectRef <- newIORef defaultAspectRatio
   gameRef <- newIORef newGame
-  return $ GameState (aspectRef,gameRef)
+  options <- newIORef defaultGameOptions
+  keyBindings <- newIORef defaultKeyBindings
+  return $ GameState (aspectRef,gameRef,options, keyBindings)
 
 getGame::GameState -> IO Game
-getGame (GameState (_,gref)) = readIORef gref
+getGame (GameState (_,gref,_,_)) = readIORef gref
 
 setGame::GameState -> Game -> IO ()
-setGame (GameState (_,gref)) = writeIORef gref
+setGame (GameState (_,gref,_,_)) = writeIORef gref
 
 updateGame::GameState -> Double -> IO ()
 updateGame state dt = do
@@ -35,10 +64,10 @@ updateGame state dt = do
   setGame state (gameStep dt game)
 
 getAspectRatio :: GameState -> IO AspectRatio
-getAspectRatio (GameState (aref,_)) = readIORef aref
+getAspectRatio (GameState (aref,_,_,_)) = readIORef aref
 
 setAspectRatio :: GameState -> AspectRatio -> IO ()
-setAspectRatio (GameState (aref,_)) a = do
+setAspectRatio (GameState (aref,_,_,_)) a = do
   writeIORef aref a
   return ()
 
@@ -50,13 +79,6 @@ newtype AspectRatio = AspectRatio Size
 
 defaultAspectRatio :: AspectRatio
 defaultAspectRatio = AspectRatio (Size 800 600)
-
-defaultGameState :: IO GameState
-defaultGameState = do
-  ratio <- newIORef defaultAspectRatio
-  game <- newIORef newGame
-  let state = GameState (ratio, game)
-  return state
 
 tallAspectRatio :: GLsizei -> GLsizei -> IO ()
 tallAspectRatio xx yy = adjusted
@@ -89,7 +111,6 @@ obscureBorders = do
     fillUp = [Pt2 (-m,-m), Pt2 ( m,-m), Pt2 ( m,-0.99), Pt2 (-m,-0.99)]
     fillDn = [Pt2 (-m, m), Pt2 ( m, m), Pt2 ( m, 0.99), Pt2 (-m, 0.99)]
 
-
 adjustAspectRatio :: GameState -> IO ()
 adjustAspectRatio state = do
    (AspectRatio (Size xx yy )) <- getAspectRatio state
@@ -99,3 +120,26 @@ adjustAspectRatio state = do
 
 obscureAspectRatio :: GameState -> IO ()
 obscureAspectRatio _ = obscureBorders
+
+restoreScreen :: GameState -> IO ()
+restoreScreen state = do
+  options <- getOptions state
+  if hasOption options FullScreenOption
+    then fullScreen
+    else windowSize $= Size 640 400
+
+-- actions that can be performed via key mappings
+
+performAction :: KeyAction -> GameState -> IO ()
+performAction ToggleFullScreen state = do
+  options <- getOptions state
+  setOptions state (toggleOption options FullScreenOption)
+  restoreScreen state
+
+performAction ExitGame _ = exitSuccess
+
+performAction Unknown _ = return ()
+
+performAction a _ = do
+  putStrLn $ "Action not implemented: " ++ show a
+  hFlush stdout
