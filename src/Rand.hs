@@ -4,10 +4,10 @@ module Rand (
     mkRandomSeq )
 where
 
-import System.Random.TF
-import Data.Time.Clock
-import Data.Time.Calendar
-import Data.Bits
+import           Data.Bits
+import           Data.Time.Calendar
+import           Data.Time.Clock
+import           System.Random.TF
 
 -- | create a new random sequence for a given seed.
 seededRandomSeq::Int->TFGen

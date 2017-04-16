@@ -4,10 +4,10 @@ module GLConverters (
   colorGL,
 ) where
 
-import Graphics.Rendering.OpenGL
-import GHC.Float
+import           GHC.Float
+import           Graphics.Rendering.OpenGL
 
-import Shapes
+import           Shapes
 
 mapGLPt2::Pt2 -> IO ()
 mapGLPt2 (Pt2 (x,y)) = vertex $ Vertex2 (double2Float x) (double2Float y)

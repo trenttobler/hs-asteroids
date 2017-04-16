@@ -8,14 +8,14 @@ module Entity (
 )
 where
 
-import Graphics.UI.GLUT
-import Asteroid
-import Shapes
-import GHC.Float
-import GLConverters
-import Data.Int
-import System.Random
-import Rand
+import           Asteroid
+import           Data.Int
+import           GHC.Float
+import           GLConverters
+import           Graphics.UI.GLUT
+import           Rand
+import           Shapes
+import           System.Random
 
 newtype Physical = Physical (Pt2,Pt2,Double,Double)
 
@@ -90,14 +90,14 @@ makeShip pos heading = PhysicalShip $ Physical (pos, Pt2 (0,0), heading, 0)
 
 instance Show Entity
   where show (PhysicalAsteroid (a,p)) = show a ++ " " ++ show p
-        show (PhysicalShip p) = "Ship at " ++ show p
+        show (PhysicalShip p)         = "Ship at " ++ show p
 
 instance Shape Entity
   where
     drawGL (PhysicalAsteroid (a,p)) = preservingMatrix $ do
       drawGL p
       drawGL a
-    drawGL (PhysicalShip p) = preservingMatrix $ do 
+    drawGL (PhysicalShip p) = preservingMatrix $ do
       drawGL p
       renderPrimitive LineLoop shipShape
 
@@ -116,4 +116,4 @@ shipShape = mapGLPt2s shipPts
 
 entityStep :: Double -> Entity -> Entity
 entityStep dt (PhysicalAsteroid (a,p)) = PhysicalAsteroid (a, physStep dt p )
-entityStep dt (PhysicalShip p) = PhysicalShip $ physStep dt p
+entityStep dt (PhysicalShip p)         = PhysicalShip $ physStep dt p

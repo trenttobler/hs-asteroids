@@ -4,26 +4,21 @@ module Bindings (
   reshape,
   keyboardMouse,
 ) where
- 
-import Graphics.UI.GLUT
-import Data.IORef
-import Display
-import System.Exit
-import Game
-import AspectRatio
 
-reshape :: IORef AspectRatio -> ReshapeCallback
-reshape aspectRatio size =
-  let
-    adjustedRatio = newAspectRatio size
-  in do
-    writeIORef aspectRatio adjustedRatio
-    viewport $= (Position 0 0, size)
+import           Display
+import           GameState
+import           Graphics.UI.GLUT
+import           System.Exit
 
-keyboardMouse :: IORef GameState -> KeyboardMouseCallback
+reshape :: GameState -> ReshapeCallback
+reshape state size = do
+  setAspectRatioSize state size
+  viewport $= (Position 0 0, size)
+
+keyboardMouse :: GameState -> KeyboardMouseCallback
 keyboardMouse _ key Down _ _ = case key of
   (SpecialKey KeyF2 ) -> fullScreen
-  (SpecialKey KeyF3 ) -> windowSize $= Size 300 300
+  (SpecialKey KeyF3 ) -> windowSize $= Size 640 400
   (Char '\ESC') -> do
     putStrLn "Exiting"
     exitSuccess

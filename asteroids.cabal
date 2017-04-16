@@ -23,7 +23,7 @@ library
                      , Entity
                      , GLConverters
                      , Game
-                     , AspectRatio
+                     , GameState
   build-depends:       base >= 4.7 && < 5
                      , GLUT
                      , OpenGL

@@ -1,9 +1,9 @@
-import Test.HUnit
-import Data.Monoid
-import Control.Monad
+import           Control.Monad
+import           Data.Monoid
+import           Test.HUnit
 
-import Shapes_Test
-import TestUtils
+import           Shapes_Test
+import           TestUtils
 
 tests = TestList [
     shapesTests ]

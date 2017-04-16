@@ -72,7 +72,7 @@ triAreaMidPt2 t = (area, mid)
 
 polyToTriPt2 :: [Pt2] -> [TriPt2]
 polyToTriPt2 (a:b:c:ps) = TriPt2 (a,b,c) : polyToTriPt2 (a:c:ps)
-polyToTriPt2 _ = []
+polyToTriPt2 _          = []
 
 -- | NOTE: clockwise area is positive, counterclockwise is negative
 polyAreaPt2 :: [Pt2] -> Double

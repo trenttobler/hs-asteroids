@@ -2,16 +2,16 @@ module Shapes_Test (
   shapesTests
 ) where
 
-import Test.HUnit
-import Data.Monoid
-import Data.List
-import Control.Monad
-import System.Random
-import Graphics.Rendering.OpenGL
+import           Control.Monad
+import           Data.List
+import           Data.Monoid
+import           Graphics.Rendering.OpenGL
+import           System.Random
+import           Test.HUnit
 
-import TestUtils
-import Shapes
-import Rand
+import           Rand
+import           Shapes
+import           TestUtils
 
 shapesTests = TestList [
   TestList polyNormTestCases,

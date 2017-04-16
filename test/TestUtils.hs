@@ -4,9 +4,9 @@ module TestUtils (
   testFailures
 ) where
 
-import Test.HUnit
-import Data.Monoid
-import Control.Monad
+import           Control.Monad
+import           Data.Monoid
+import           Test.HUnit
 
 binaryTestCase assert methodName apply (arg, expect) =
   TestLabel testName testCase

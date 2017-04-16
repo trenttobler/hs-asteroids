@@ -1,23 +1,26 @@
 module Game (
   newGame,
-  GameState(..),
-  gameStep
+  Game(..),
+  gameStep,
+  getEntities
 )
 where
 
-import Entity
-import Shapes
+import           Entity
+import           Shapes
 
-newtype GameState = GameState [Entity]
+newtype Game = Game [Entity]
+
+getEntities :: Game -> [Entity]
+getEntities (Game es) = es
 
 entities::[Entity]
 entities = makeShip (Pt2 (0,0)) 0
            : [ makeAsteroid (0.1000/fromIntegral s) s | s <- [1..10] ]
 
-newGame :: GameState
-newGame = GameState entities
+newGame :: Game
+newGame = Game entities
 
-
-gameStep :: Double -> GameState -> GameState
-gameStep dt (GameState e)=
-    GameState $ fmap (entityStep dt) e
+gameStep :: Double -> Game -> Game
+gameStep dt (Game e)=
+    Game $ fmap (entityStep dt) e
