@@ -20,7 +20,10 @@ library
                      , Rand
                      , Shapes
                      , Asteroid
+                     , Entity
                      , GLConverters
+                     , Game
+                     , AspectRatio
   build-depends:       base >= 4.7 && < 5
                      , GLUT
                      , OpenGL

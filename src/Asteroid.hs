@@ -20,15 +20,15 @@ asteroidSeed (Asteroid (_, s, _ )) = s
 asteroidSize :: Asteroid -> Double
 asteroidSize (Asteroid (_, _, sz)) = sz
 
-asteroid :: Int -> Double -> Asteroid
-asteroid seed size = Asteroid (draw, seed, size)
+asteroid :: RandomGen r => Double -> Int -> r -> Asteroid
+asteroid size seed r = Asteroid (draw, seed, size)
   where
     draw = drawAsteroid verts
-    verts = asteroidVertices seed size
+    verts = asteroidVertices r size
 
 instance Show Asteroid
   where
-    show (Asteroid (_, seed, size)) = "Asteroid " ++ show seed ++ " " ++ show size
+    show (Asteroid (_, seed, size)) = "Asteroid#" ++ show seed ++ " (" ++ show size ++ ")"
 
 instance Shape Asteroid
   where
@@ -49,13 +49,12 @@ randomAngles n w r = angles
     radians = 2 * pi / last aseq
     angles = fmap (radians *) aseq
 
-asteroidVertices :: Int -> Double -> IO ()
+asteroidVertices :: RandomGen r => r -> Double -> IO ()
 asteroidVertices seed size = mapGLPt2s $ asteroidPt2s seed size
 
-asteroidPt2s :: Int -> Double -> [Pt2]
-asteroidPt2s seed size = polyNormPt2 size pts
+asteroidPt2s :: RandomGen r => r -> Double -> [Pt2]
+asteroidPt2s r0 size = polyNormPt2 size pts
   where
-    r0 = seededRandomSeq seed
     (ptCnt, r1) = randomR (12,24) r0
     (r2,r3) = split r1
     dists = randomSeq ptCnt (0.4,1.0) r2
