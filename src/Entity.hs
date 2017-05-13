@@ -17,7 +17,6 @@ import           Graphics.UI.GLUT
 import           Pt2
 import           Rand
 import           Shapes
-import           System.Random
 import           Utils
 
 data ShipRotation = TurnShipLeft | TurnShipRight | StopShipTurning
@@ -32,24 +31,12 @@ initialShipState = ShipState StopShipTurning False
 data Entity = PhysicalAsteroid (Asteroid,Physical)
             | PhysicalShip (Physical,Bool)
 
-makeAsteroid :: Double -> Int -> Entity
-makeAsteroid size seed = PhysicalAsteroid (createAsteroid size seed r', phys)
-  where
-    r = seededRandomSeq seed
-    (dist,  r1) = randomR (  0.4  ,  1.0    ) r
-    (angle, r2) = randomR (  0    ,  2*pi   ) r1
-    (dx,    r3) = randomR ( -0.03,  0.03    ) r2
-    (dy,    r4) = randomR ( -0.03,  0.03    ) r3
-    (spin,  r5) = randomR ( -3    ,  3      ) r4
-    r' = r5
-    phys = Physical {
-      phys'Position = Pt2 (dist * cos angle, dist * sin angle),
-      phys'Velocity = Pt2 (dx,dy) `divPt2` sqrt size,
-      phys'Heading = 0,
-      phys'Spin = spin / size
-    }
+makeAsteroid :: Coord -> Int -> RandomState Entity
+makeAsteroid size seed = do
+  a <- createAsteroid size seed
+  return $ PhysicalAsteroid a
 
-makeShip :: Pt2 -> Double -> Entity
+makeShip :: Pt2 Coord -> Coord -> Entity
 makeShip pos heading = PhysicalShip (p,False)
   where p = Physical {
     phys'Position = pos,
@@ -78,10 +65,10 @@ drawShipThrust _    = return ()
 -- At some point, will want to break ship out into it's own class.
 -- That will also require moving out the physical type to prevent
 -- an import loop.
-shipSize :: Double
+shipSize :: Coord
 shipSize = 0.02
 
-shipPts :: [Pt2]
+shipPts :: [Pt2 Coord]
 shipPts =  [ Pt2 (-shipSize, -shipSize),
              Pt2 ( 0,        2*shipSize),
              Pt2 (shipSize,  -shipSize),
@@ -90,7 +77,7 @@ shipPts =  [ Pt2 (-shipSize, -shipSize),
 shipShape :: IO ()
 shipShape = mapGLPt2s shipPts
 
-thrustPts :: [Pt2]
+thrustPts :: [Pt2 Coord]
 thrustPts = [ Pt2 (-shipSize * 0.5, -shipSize * 1.1),
               Pt2 ( 0,              -shipSize * 1.9),
               Pt2 ( shipSize * 0.5, -shipSize * 1.1) ]
@@ -98,7 +85,7 @@ thrustPts = [ Pt2 (-shipSize * 0.5, -shipSize * 1.1),
 thrustShape :: IO ()
 thrustShape = mapGLPt2s thrustPts
 
-entityStep :: Double -> ShipState -> Entity -> Entity
+entityStep :: Coord -> ShipState -> Entity -> Entity
 entityStep dt _ (PhysicalAsteroid (a,p)) = PhysicalAsteroid (a, physStep dt p )
 entityStep dt ship (PhysicalShip (p,_)) = PhysicalShip (p',shipThrusting ship)
   where
@@ -113,6 +100,6 @@ entityStep dt ship (PhysicalShip (p,_)) = PhysicalShip (p',shipThrusting ship)
       TurnShipRight -> const (-shipRotationRate)
       _             -> const 0
 
-shipRotationRate :: Double
+shipRotationRate :: Coord
 shipRotationRate = 360
 

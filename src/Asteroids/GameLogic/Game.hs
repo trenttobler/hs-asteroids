@@ -8,6 +8,8 @@ where
 
 import           Entity
 import           Pt2
+import           Rand
+import           Utils
 
 newtype Game = Game [Entity]
 
@@ -16,11 +18,10 @@ getEntities (Game es) = es
 
 entities::[Entity]
 entities = makeShip (Pt2 (0,0)) 0
-           : [ makeAsteroid (0.1000/fromIntegral s) s | s <- [1..10] ]
+           : getSeedRand 1 (sequence [ makeAsteroid (0.1000/fromIntegral (s `mod` 10)) s | s <- [1..40] ])
 
 newGame :: IO Game
 newGame = return $ Game entities
 
-gameStep :: Double -> ShipState -> Game -> Game
-gameStep dt ship (Game e)=
-    Game $ fmap (entityStep dt ship) e
+gameStep :: Coord -> ShipState -> Game -> Game
+gameStep dt ship (Game e) = Game $ fmap (entityStep dt ship) e

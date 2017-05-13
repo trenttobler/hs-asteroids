@@ -41,6 +41,7 @@ library
                      , random
                      , time
                      , tf-random
+                     , transformers
                      , unordered-containers
   default-language:    Haskell2010
 

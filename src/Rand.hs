@@ -1,35 +1,42 @@
 module Rand (
-    seededRandomSeq,
-    getRandomSeed,
-    mkRandomSeq,
-    randomSeq )
+  seededRandomSeq, mkRandomSeq,
+
+  RandomState, Random,
+  newRand, getSeedRand, randR, randRs,
+
+  randPair, randPairs )
 where
 
-import           Data.Bits
-import           Data.Time.Calendar
-import           Data.Time.Clock
+import           Control.Applicative
+import           Control.Monad             (replicateM)
+import           Control.Monad.Trans.State
 import           System.Random
 import           System.Random.TF
+
+type RandomState = State TFGen
 
 -- | create a new random sequence for a given seed.
 seededRandomSeq::Int->TFGen
 seededRandomSeq = mkTFGen
 
--- | get an integer value suitable for use in a non-cryptographic random number generator.
-getRandomSeed::IO Int
-getRandomSeed = do
-    t <- getCurrentTime
-    let lsb = truncate (utctDayTime t * 1000000)::Int
-    let d = diffDays (utctDay t) $ fromGregorian 1970 1 1
-    let msb = fromInteger d::Int
-    let seed = lsb `xor` msb
-    return seed
-
 -- | create a new random sequence using a random seed.
 mkRandomSeq::IO TFGen
-mkRandomSeq = do
-    s <- getRandomSeed
-    return $ seededRandomSeq s
+mkRandomSeq = newTFGen
 
-randomSeq :: (Random a, RandomGen g) => Int -> (a, a) -> g -> [a]
-randomSeq n (a,b) r = take n $ randomRs (a,b) r
+newRand :: RandomState a -> IO a
+newRand s = fmap (evalState s) mkRandomSeq
+
+getSeedRand :: Int -> RandomState a -> a
+getSeedRand seed s = evalState s (seededRandomSeq seed)
+
+randR :: (Random a) => (a,a) -> RandomState a
+randR range = state (randomR range)
+
+randRs :: (Random a) => (a,a) -> Int -> RandomState [a]
+randRs range n = replicateM n (randR range)
+
+randPair :: Random a => (a,a) -> RandomState (a,a)
+randPair r = liftA2 (,) rndC rndC where rndC = randR r
+
+randPairs :: Random a => (a,a) -> Int -> RandomState [(a,a)]
+randPairs r n = replicateM n (randPair r)
