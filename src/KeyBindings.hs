@@ -5,10 +5,10 @@ module KeyBindings (
   getAction
 ) where
 
+import           Asteroids.GameLogic.KeyAction
 import           Data.Hashable
 import           Data.HashMap.Lazy
 import           Graphics.UI.GLUT
-import           KeyAction
 
 newtype KeyBinding = KeyBinding (Key,Modifiers)
   deriving ( Eq, Show )

@@ -1,11 +1,11 @@
-module Bindings (
+module Asteroids.UILogic.Bindings (
   idle,
   display,
   reshape,
   keyboardMouse,
 ) where
 
-import           Display
+import           Asteroids.UILogic.Display
 import           GameState
 import           Graphics.UI.GLUT
 import           KeyBindings
@@ -16,8 +16,6 @@ reshape state size = do
   viewport $= (Position 0 0, size)
 
 keyboardMouse :: GameState -> KeyboardMouseCallback
-keyboardMouse state key Down modifiers _ = do
+keyboardMouse state key keyState modifiers _ = do
     keyMap <- getKeyBindings state
-    performAction (getAction keyMap key modifiers) state
-
-keyboardMouse _ _ _ _ _ = return ()
+    performAction (getAction keyMap key modifiers) state keyState

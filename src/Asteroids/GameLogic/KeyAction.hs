@@ -1,4 +1,4 @@
-module KeyAction (
+module Asteroids.GameLogic.KeyAction (
   KeyAction(..),
   keyActionName,
   allKeyActions

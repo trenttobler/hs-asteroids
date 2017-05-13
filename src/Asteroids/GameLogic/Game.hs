@@ -1,4 +1,4 @@
-module Game (
+module Asteroids.GameLogic.Game (
   newGame,
   Game(..),
   gameStep,
@@ -7,7 +7,7 @@ module Game (
 where
 
 import           Entity
-import           Shapes
+import           Pt2
 
 newtype Game = Game [Entity]
 
@@ -18,9 +18,9 @@ entities::[Entity]
 entities = makeShip (Pt2 (0,0)) 0
            : [ makeAsteroid (0.1000/fromIntegral s) s | s <- [1..10] ]
 
-newGame :: Game
-newGame = Game entities
+newGame :: IO Game
+newGame = return $ Game entities
 
-gameStep :: Double -> Game -> Game
-gameStep dt (Game e)=
-    Game $ fmap (entityStep dt) e
+gameStep :: Double -> ShipState -> Game -> Game
+gameStep dt ship (Game e)=
+    Game $ fmap (entityStep dt ship) e

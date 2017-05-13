@@ -2,7 +2,7 @@ module Main (
     main
 ) where
 
-import           Bindings
+import           Asteroids.UILogic.Bindings
 import           GameState
 import           Graphics.UI.GLUT
 

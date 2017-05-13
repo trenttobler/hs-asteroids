@@ -11,112 +11,99 @@ module GameState (
   performAction,
   getKeyBindings,
   setKeyBindings,
-  restoreScreen
+  restoreScreen,
+  getAspectRatio
 ) where
 
+import           Asteroids.UILogic.AspectRatio
 import           Data.IORef
-import           Game
-import           GameOptions
-import           GLConverters
+import           Data.Time
+import           Entity
+import           Asteroids.GameLogic.Game
+import           Asteroids.GameLogic.GameOptions
 import           Graphics.UI.GLUT
-import           KeyAction
+import           Asteroids.GameLogic.KeyAction
 import           KeyBindings
-import           Shapes
 import           System.Exit
 import           System.IO
 
+
+data PlayStatus =
+  StartingGame
+  | PlayingGame
+  deriving ( Enum, Eq, Show )
+
 -- Need to learn how to do lenses so this is easier to do.
-newtype GameState = GameState (
-  IORef AspectRatio,
-  IORef Game,
-  IORef GameOptions,
-  IORef KeyBindings )
-
-getKeyBindings :: GameState -> IO KeyBindings
-getKeyBindings (GameState (_,_,_,obind)) = readIORef obind
-
-setKeyBindings :: GameState -> KeyBindings -> IO ()
-setKeyBindings (GameState (_,_,_,obind)) = writeIORef obind
-
-getOptions :: GameState -> IO GameOptions
-getOptions (GameState (_,_,oref,_)) = readIORef oref
-
-setOptions :: GameState -> GameOptions -> IO ()
-setOptions (GameState (_,_,oref,_)) = writeIORef oref
+data GameState = GameState {
+  aspectRef      :: IORef AspectRatio,
+  gameRef        :: IORef Game,
+  optionsRef     :: IORef GameOptions,
+  keyBindingsRef :: IORef KeyBindings,
+  lastTimeRef    :: IORef UTCTime,
+  statusRef      :: IORef PlayStatus,
+  shipRef        :: IORef ShipState }
 
 newGameState :: IO GameState
 newGameState = do
-  aspectRef <- newIORef defaultAspectRatio
-  gameRef <- newIORef newGame
-  options <- newIORef defaultGameOptions
-  keyBindings <- newIORef defaultKeyBindings
-  return $ GameState (aspectRef,gameRef,options, keyBindings)
+  currentTime <- getCurrentTime
+  game <- newGame
+  aRef <- newIORef defaultAspectRatio
+  gRef <- newIORef game
+  oRef <- newIORef defaultGameOptions
+  kRef <- newIORef defaultKeyBindings
+  cRef <- newIORef currentTime
+  stRef <- newIORef StartingGame
+  shRef <- newIORef initialShipState
+  return $ GameState aRef gRef oRef kRef cRef stRef shRef
 
-getGame::GameState -> IO Game
-getGame (GameState (_,gref,_,_)) = readIORef gref
+getIO :: (GameState -> IORef a) -> GameState -> IO a
+getIO prop state = readIORef (prop state)
 
-setGame::GameState -> Game -> IO ()
-setGame (GameState (_,gref,_,_)) = writeIORef gref
+setIO :: (GameState -> IORef a) -> GameState -> a -> IO ()
+setIO prop state = writeIORef (prop state)
 
-updateGame::GameState -> Double -> IO ()
-updateGame state dt = do
-  game <- getGame state
-  setGame state (gameStep dt game)
+getKeyBindings :: GameState -> IO KeyBindings
+getKeyBindings  = getIO keyBindingsRef
+setKeyBindings :: GameState -> KeyBindings -> IO ()
+setKeyBindings  = setIO keyBindingsRef
+
+getOptions :: GameState -> IO GameOptions
+getOptions      = getIO optionsRef
+setOptions :: GameState -> GameOptions -> IO ()
+setOptions      = setIO optionsRef
+
+getGame :: GameState -> IO Game
+getGame         = getIO gameRef
+setGame :: GameState -> Game -> IO ()
+setGame         = setIO gameRef
 
 getAspectRatio :: GameState -> IO AspectRatio
-getAspectRatio (GameState (aref,_,_,_)) = readIORef aref
-
+getAspectRatio  = getIO aspectRef
 setAspectRatio :: GameState -> AspectRatio -> IO ()
-setAspectRatio (GameState (aref,_,_,_)) a = do
-  writeIORef aref a
-  return ()
+setAspectRatio  = setIO aspectRef
+
+getLastTime :: GameState -> IO UTCTime
+getLastTime    = getIO lastTimeRef
+setLastTime :: GameState -> UTCTime -> IO ()
+setLastTime    = setIO lastTimeRef
+
+getShip :: GameState -> IO ShipState
+getShip = getIO shipRef
+setShip :: GameState -> ShipState -> IO ()
+setShip = setIO shipRef
 
 setAspectRatioSize :: GameState -> Size -> IO ()
-setAspectRatioSize state size = setAspectRatio state ratio
-  where ratio = AspectRatio size
+setAspectRatioSize state size = setAspectRatio state $ AspectRatio size
 
-newtype AspectRatio = AspectRatio Size
-
-defaultAspectRatio :: AspectRatio
-defaultAspectRatio = AspectRatio (Size 800 600)
-
-tallAspectRatio :: GLsizei -> GLsizei -> IO ()
-tallAspectRatio xx yy = adjusted
-  where
-    x = fromIntegral xx
-    y = fromIntegral yy
-    d = x / y :: GLfloat
-    adjusted = scale 1 d 1
-
-wideAspectRatio :: GLsizei -> GLsizei -> IO ()
-wideAspectRatio xx yy = adjusted
-  where
-    x = fromIntegral xx
-    y = fromIntegral yy
-    d = y / x :: GLfloat
-    adjusted = scale d 1 1
-
-obscureBorders :: IO ()
-obscureBorders = do
-    renderPrimitive LineLoop $ mapGLPt2s border
-    renderPrimitive Polygon  $ mapGLPt2s fillLt
-    renderPrimitive Polygon  $ mapGLPt2s fillRt
-    renderPrimitive Polygon  $ mapGLPt2s fillUp
-    renderPrimitive Polygon  $ mapGLPt2s fillDn
-  where
-    m = 10
-    border = [Pt2 (-0.99,-0.99), Pt2 (-0.99, 0.99), Pt2 ( 0.99, 0.99), Pt2 ( 0.99,-0.99)]
-    fillLt = [Pt2 (-m,-m), Pt2 (-m, m), Pt2 (-0.99, m), Pt2 (-0.99,-m)]
-    fillRt = [Pt2 ( m,-m), Pt2 ( m, m), Pt2 ( 0.99, m), Pt2 ( 0.99,-m)]
-    fillUp = [Pt2 (-m,-m), Pt2 ( m,-m), Pt2 ( m,-0.99), Pt2 (-m,-0.99)]
-    fillDn = [Pt2 (-m, m), Pt2 ( m, m), Pt2 ( m, 0.99), Pt2 (-m, 0.99)]
-
-adjustAspectRatio :: GameState -> IO ()
-adjustAspectRatio state = do
-   (AspectRatio (Size xx yy )) <- getAspectRatio state
-   if xx < yy
-     then tallAspectRatio xx yy
-     else wideAspectRatio xx yy
+updateGame::GameState -> IO ()
+updateGame state = do
+  lastTime <- getLastTime state
+  curTime <- getCurrentTime
+  setLastTime state curTime
+  let dt = realToFrac $ diffUTCTime curTime lastTime
+  game <- getGame state
+  ship <- getShip state
+  setGame state (gameStep dt ship game)
 
 obscureAspectRatio :: GameState -> IO ()
 obscureAspectRatio _ = obscureBorders
@@ -130,16 +117,39 @@ restoreScreen state = do
 
 -- actions that can be performed via key mappings
 
-performAction :: KeyAction -> GameState -> IO ()
-performAction ToggleFullScreen state = do
+performAction :: KeyAction -> GameState -> KeyState -> IO ()
+performAction ToggleFullScreen state Down = do
   options <- getOptions state
   setOptions state (toggleOption options FullScreenOption)
   restoreScreen state
 
-performAction ExitGame _ = exitSuccess
+performAction TurnLeft state upOrDown = performShipTurn state
+  $ shipRotate TurnShipLeft upOrDown
 
-performAction Unknown _ = return ()
+performAction TurnRight state upOrDown = performShipTurn state
+  $ shipRotate TurnShipRight upOrDown
 
-performAction a _ = do
+performAction Thrust state upOrDown = do
+    ship <- getShip state
+    setShip state $ ship { shipThrusting = thrusting }
+  where thrusting = upOrDown == Down
+
+performAction ExitGame _ _ = exitSuccess
+
+performAction Unknown _ _ = return ()
+
+performAction _ _ Up = return ()
+
+performAction a _ _ = do
   putStrLn $ "Action not implemented: " ++ show a
   hFlush stdout
+
+shipRotate :: ShipRotation -> KeyState -> ShipRotation
+shipRotate dir Down = dir
+shipRotate _ Up     = StopShipTurning
+
+performShipTurn :: GameState -> ShipRotation -> IO ()
+performShipTurn state dir = do
+    ship <- getShip state
+    setShip state $ ship { shipRotation = dir }
+

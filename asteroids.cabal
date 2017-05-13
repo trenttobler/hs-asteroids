@@ -15,31 +15,36 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Bindings
-                     , Display
-                     , Rand
-                     , Shapes
+  exposed-modules:     Asteroids.UILogic.AspectRatio
+                     , Asteroids.UILogic.Bindings
+                     , Asteroids.UILogic.Display
                      , Asteroid
+                     , Asteroids.GameLogic.Physical
+                     , Asteroids.GameLogic.Game
+                     , Asteroids.GameLogic.GameOptions
+                     , Asteroids.GameLogic.KeyAction
                      , Entity
-                     , GLConverters
-                     , Game
                      , GameState
                      , KeyBindings
-                     , KeyAction
-                     , GameOptions
+                     , PolyPt2
+                     , Pt2
+                     , Rand
+                     , Shapes
+                     , TriPt2
+                     , Utils
   build-depends:       base >= 4.7 && < 5
+                     , clock
                      , GLUT
+                     , hashable
+                     , mtl
                      , OpenGL
                      , random
-                     , mtl
-                     , random
-                     , tf-random
                      , time
+                     , tf-random
                      , unordered-containers
-                     , hashable
   default-language:    Haskell2010
 
-executable asteroids-exe
+executable asteroids
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
@@ -57,15 +62,15 @@ test-suite asteroids-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
-  other-modules:       Shapes_Test
+  other-modules:
+                       Shapes_Test
                      , TestUtils
   build-depends:       base
                      , asteroids
-                     , HUnit
                      , GLUT
-                     , OpenGL
-                     , random
+                     , HUnit
                      , mtl
+                     , OpenGL
                      , random
                      , tf-random
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N

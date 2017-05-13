@@ -1,4 +1,4 @@
-module GameOptions (
+module Asteroids.GameLogic.GameOptions (
   GameOptions,
   GameOption(..),
   defaultGameOptions,

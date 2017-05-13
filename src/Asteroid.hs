@@ -1,36 +1,39 @@
 module Asteroid (
-  Asteroid,
-  asteroidSeed,
-  asteroidSize,
-  asteroid
+  Asteroid(..),
+  createAsteroid
 ) where
 
-import           GLConverters
 import           Graphics.Rendering.OpenGL
+import           PolyPt2
+import           Pt2
 import           Shapes
 import           System.Random
+import           Utils
 
-newtype Asteroid = Asteroid (IO (), Int, Double)
+data Asteroid = Asteroid {
+  asteroid'Draw :: IO (),
+  asteroid'Seed :: Int,
+  asteroid'Size :: Double
+}
 
-asteroidSeed :: Asteroid -> Int
-asteroidSeed (Asteroid (_, s, _ )) = s
+randomDistRange :: (Double, Double)
+randomDistRange = (0.5,1.0)
 
-asteroidSize :: Asteroid -> Double
-asteroidSize (Asteroid (_, _, sz)) = sz
+randomAngleBias :: Double
+randomAngleBias = 6.0
 
-asteroid :: RandomGen r => Double -> Int -> r -> Asteroid
-asteroid size seed r = Asteroid (draw, seed, size)
-  where
-    draw = drawAsteroid verts
-    verts = asteroidVertices r size
+createAsteroid :: RandomGen r => Double -> Int -> r -> Asteroid
+createAsteroid size seed r = Asteroid {
+    asteroid'Draw = drawAsteroid $ asteroidVertices r size,
+    asteroid'Seed = seed,
+    asteroid'Size = size
+  }
 
 instance Show Asteroid
-  where
-    show (Asteroid (_, seed, size)) = "Asteroid#" ++ show seed ++ " (" ++ show size ++ ")"
+  where show a = concat ["Asteroid#", show (asteroid'Seed a),
+                         " (",        show (asteroid'Size a), ")" ]
 
-instance Shape Asteroid
-  where
-    drawGL (Asteroid (d, _, _) ) = d
+instance Shape Asteroid where drawGL a = asteroid'Draw a
 
 drawAsteroid :: IO b -> IO b
 drawAsteroid verts = do
@@ -55,7 +58,7 @@ asteroidPt2s r0 size = polyNormPt2 size pts
   where
     (ptCnt, r1) = randomR (12,24) r0
     (r2,r3) = split r1
-    dists = randomSeq ptCnt (0.4,1.0) r2
-    angles = randomAngles ptCnt (1.0,4.0) r3
+    dists = randomSeq ptCnt randomDistRange r2
+    angles = randomAngles ptCnt (1.0,randomAngleBias) r3
     point (d,a) = Pt2 (d * cos a,d * sin a)
     pts = point <$> zip dists angles

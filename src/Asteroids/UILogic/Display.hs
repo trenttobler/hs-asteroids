@@ -1,11 +1,10 @@
-module Display (
+module Asteroids.UILogic.Display (
   display,
   idle
 ) where
 
 import           Control.Monad
-import           Data.IORef
-import           Game
+import           Asteroids.GameLogic.Game
 import           GameState
 import           Graphics.UI.GLUT
 import           Shapes
@@ -14,7 +13,8 @@ display :: GameState -> DisplayCallback
 display state = do
   clear [ColorBuffer, DepthBuffer]
   loadIdentity
-  adjustAspectRatio state
+  aspect <- getAspectRatio state
+  adjustAspectRatio aspect
   game <- getGame state
   forM_ (getEntities game) drawGL
   obscureAspectRatio state
@@ -22,7 +22,6 @@ display state = do
 
 idle :: GameState -> IdleCallback
 idle state = do
-  let dt = 0.001 -- use high precision clock / time
-  updateGame state dt
+  updateGame state
   postRedisplay Nothing
 

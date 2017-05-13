@@ -1,12 +1,14 @@
 module Rand (
     seededRandomSeq,
     getRandomSeed,
-    mkRandomSeq )
+    mkRandomSeq,
+    randomSeq )
 where
 
 import           Data.Bits
 import           Data.Time.Calendar
 import           Data.Time.Clock
+import           System.Random
 import           System.Random.TF
 
 -- | create a new random sequence for a given seed.
@@ -28,3 +30,6 @@ mkRandomSeq::IO TFGen
 mkRandomSeq = do
     s <- getRandomSeed
     return $ seededRandomSeq s
+
+randomSeq :: (Random a, RandomGen g) => Int -> (a, a) -> g -> [a]
+randomSeq n (a,b) r = take n $ randomRs (a,b) r

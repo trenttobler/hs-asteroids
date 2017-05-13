@@ -1,4 +1,4 @@
-module GLConverters (
+module Utils (
   mapGLPt2,
   mapGLPt2s,
   colorGL,
@@ -6,8 +6,7 @@ module GLConverters (
 
 import           GHC.Float
 import           Graphics.Rendering.OpenGL
-
-import           Shapes
+import           Pt2
 
 mapGLPt2::Pt2 -> IO ()
 mapGLPt2 (Pt2 (x,y)) = vertex $ Vertex2 (double2Float x) (double2Float y)
