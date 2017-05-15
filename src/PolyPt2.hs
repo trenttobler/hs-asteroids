@@ -1,4 +1,5 @@
 module PolyPt2 (
+  PolyPt2,
   polyAreaPt2,
   polyMidPt2,
   polyAreaMidPt2,
@@ -8,6 +9,8 @@ where
 
 import           Pt2
 import           TriPt2
+
+type PolyPt2 a = [Pt2 a]
 
 polyToTriPt2 :: [Pt2 a] -> [TriPt2 a]
 polyToTriPt2 (a:b:c:ps) = TriPt2 (a,b,c) : polyToTriPt2 (a:c:ps)

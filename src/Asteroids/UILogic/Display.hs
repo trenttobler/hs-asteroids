@@ -3,11 +3,9 @@ module Asteroids.UILogic.Display (
   idle
 ) where
 
-import           Control.Monad
-import           Asteroids.GameLogic.Game
+import           Control.Concurrent
 import           GameState
 import           Graphics.UI.GLUT
-import           Shapes
 
 display :: GameState -> DisplayCallback
 display state = do
@@ -15,13 +13,12 @@ display state = do
   loadIdentity
   aspect <- getAspectRatio state
   adjustAspectRatio aspect
-  game <- getGame state
-  forM_ (getEntities game) drawGL
+  draw state
   obscureAspectRatio state
   swapBuffers
 
 idle :: GameState -> IdleCallback
 idle state = do
+  threadDelay 20000
   updateGame state
   postRedisplay Nothing
-

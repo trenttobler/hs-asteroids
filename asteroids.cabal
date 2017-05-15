@@ -15,23 +15,27 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Asteroids.UILogic.AspectRatio
-                     , Asteroids.UILogic.Bindings
-                     , Asteroids.UILogic.Display
-                     , Asteroid
-                     , Asteroids.GameLogic.Physical
+  exposed-modules:     Asteroids
+                     , Asteroids.GameLogic
+                     , Asteroids.GameLogic.Asteroid
+                     , Asteroids.GameLogic.Entity
                      , Asteroids.GameLogic.Game
                      , Asteroids.GameLogic.GameOptions
                      , Asteroids.GameLogic.KeyAction
-                     , Entity
+                     , Asteroids.GameLogic.Physical
+                     , Asteroids.GameLogic.Ship
+                     , Asteroids.Helpers
+                     , Asteroids.UILogic
+                     , Asteroids.UILogic.AspectRatio
+                     , Asteroids.UILogic.Bindings
+                     , Asteroids.UILogic.Display
+                     , Asteroids.UILogic.Drawable
+                     , Asteroids.UILogic.KeyBindings
                      , GameState
-                     , KeyBindings
                      , PolyPt2
                      , Pt2
                      , Rand
-                     , Shapes
                      , TriPt2
-                     , Utils
   build-depends:       base >= 4.7 && < 5
                      , clock
                      , GLUT
@@ -43,6 +47,7 @@ library
                      , tf-random
                      , transformers
                      , unordered-containers
+                     , vector-space
   default-language:    Haskell2010
 
 executable asteroids
@@ -63,8 +68,7 @@ test-suite asteroids-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
-  other-modules:
-                       Shapes_Test
+  other-modules:       Shapes_Test
                      , TestUtils
   build-depends:       base
                      , asteroids

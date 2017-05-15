@@ -1,4 +1,4 @@
-module KeyBindings (
+module Asteroids.UILogic.KeyBindings (
   KeyBindings,
   KeyBinding(..),
   defaultKeyBindings,

@@ -1,27 +1,32 @@
 module Asteroids.GameLogic.Game (
-  newGame,
   Game(..),
-  gameStep,
-  getEntities
+  newGame,
+  gameStep
 )
 where
 
-import           Entity
+import           Asteroids.GameLogic.Entity
+import           Asteroids.GameLogic.Ship
+import           Asteroids.UILogic.Drawable
 import           Pt2
 import           Rand
-import           Utils
 
-newtype Game = Game [Entity]
+data Game = Game
+  { game'Entities :: [Entity]
+  , game'Seed :: Int
+  , game'Level :: Int }
 
-getEntities :: Game -> [Entity]
-getEntities (Game es) = es
-
-entities::[Entity]
-entities = makeShip (Pt2 (0,0)) 0
-           : getSeedRand 1 (sequence [ makeAsteroid (0.1000/fromIntegral (s `mod` 10)) s | s <- [1..40] ])
-
-newGame :: IO Game
-newGame = return $ Game entities
+instance Drawable Game where
+  draw game = mapM_ draw (game'Entities game)
+        
+newGame :: Int -> Int -> IO Game
+newGame seed level = let
+  ship = makeShip (Pt2 (0,0)) 0
+  asteroids = runSeedRand seed (sequence [ makeAsteroid (0.1000/fromIntegral (s `mod` 10)) s | s <- [1..level] ])
+  game = Game (ship:asteroids) seed level
+  in return game
 
 gameStep :: Coord -> ShipState -> Game -> Game
-gameStep dt ship (Game e) = Game $ fmap (entityStep dt ship) e
+gameStep dt ship g = g { game'Entities = es }
+  where es = fmap step (game'Entities g)
+        step e = (entity'Step e) dt ship

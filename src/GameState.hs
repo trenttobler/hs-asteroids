@@ -1,4 +1,5 @@
 module GameState (
+  Drawable(..),
   GameState,
   adjustAspectRatio,
   obscureAspectRatio,
@@ -15,15 +16,16 @@ module GameState (
   getAspectRatio
 ) where
 
-import           Asteroids.UILogic.AspectRatio
-import           Data.IORef
-import           Data.Time
-import           Entity
 import           Asteroids.GameLogic.Game
 import           Asteroids.GameLogic.GameOptions
-import           Graphics.UI.GLUT
 import           Asteroids.GameLogic.KeyAction
-import           KeyBindings
+import           Asteroids.GameLogic.Ship
+import           Asteroids.UILogic.AspectRatio
+import           Asteroids.UILogic.Drawable
+import           Asteroids.UILogic.KeyBindings
+import           Data.IORef
+import           Data.Time
+import           Graphics.UI.GLUT
 import           System.Exit
 import           System.IO
 
@@ -33,20 +35,27 @@ data PlayStatus =
   | PlayingGame
   deriving ( Enum, Eq, Show )
 
--- Need to learn how to do lenses so this is easier to do.
+-- Need change this to a single IORef with nested game state...
+-- type GameStateRef = (IORef GameState)
+--
 data GameState = GameState {
   aspectRef      :: IORef AspectRatio,
   gameRef        :: IORef Game,
   optionsRef     :: IORef GameOptions,
   keyBindingsRef :: IORef KeyBindings,
   lastTimeRef    :: IORef UTCTime,
-  statusRef      :: IORef PlayStatus,
+  _statusRef     :: IORef PlayStatus,
   shipRef        :: IORef ShipState }
 
-newGameState :: IO GameState
-newGameState = do
+instance Drawable GameState where
+  draw state = do
+    game <- getGame state
+    draw game
+
+newGameState :: Int -> Int -> IO GameState
+newGameState seed level = do
   currentTime <- getCurrentTime
-  game <- newGame
+  game <- newGame seed level
   aRef <- newIORef defaultAspectRatio
   gRef <- newIORef game
   oRef <- newIORef defaultGameOptions
@@ -151,5 +160,6 @@ shipRotate _ Up     = StopShipTurning
 performShipTurn :: GameState -> ShipRotation -> IO ()
 performShipTurn state dir = do
     ship <- getShip state
-    setShip state $ ship { shipRotation = dir }
+    let ship' = ship { shipRotation = dir }
+    setShip state ship'
 

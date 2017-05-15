@@ -2,7 +2,7 @@ module Rand (
   seededRandomSeq, mkRandomSeq,
 
   RandomState, Random,
-  newRand, getSeedRand, randR, randRs,
+  runRand, runSeedRand, randR, randRs,
 
   randPair, randPairs )
 where
@@ -23,13 +23,13 @@ seededRandomSeq = mkTFGen
 mkRandomSeq::IO TFGen
 mkRandomSeq = newTFGen
 
-newRand :: RandomState a -> IO a
-newRand s = fmap (evalState s) mkRandomSeq
+runRand :: RandomState a -> IO a
+runRand s = fmap (evalState s) mkRandomSeq
 
-getSeedRand :: Int -> RandomState a -> a
-getSeedRand seed s = evalState s (seededRandomSeq seed)
+runSeedRand :: Int -> RandomState a -> a
+runSeedRand seed s = evalState s (seededRandomSeq seed)
 
-randR :: (Random a) => (a,a) -> RandomState a
+randR :: Random a => (a,a) -> RandomState a
 randR range = state (randomR range)
 
 randRs :: (Random a) => (a,a) -> Int -> RandomState [a]

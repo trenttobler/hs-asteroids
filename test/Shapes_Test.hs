@@ -10,33 +10,32 @@ import           System.Random
 import           Test.HUnit
 
 import           Rand
-import           Shapes
+import           PolyPt2
+import           Pt2
+import           TriPt2
 import           TestUtils
-
-shapesTests = TestList [
-  TestList polyNormTestCases,
---  TestList pt2Tests,
-  TestList triPt2Tests
-  ]
-
--- Test setup
-rand = seededRandomSeq 1
 
 polyPtRange = (-10::Double,10::Double)
 
-randPts r n = (ps,r'')
-  where
-    (rx,r') = split r
-    (ry,r'') = split r'
-    xs = randomRs polyPtRange rx
-    ys = randomRs polyPtRange ry
-    ps = fmap Pt2 $ take n $ zip xs ys
-
+randPts :: Int -> RandomState [Pt2 Double]
+randPts n = do
+  xs <- randRs polyPtRange n
+  ys <- randRs polyPtRange n
+  let ps = fmap Pt2 (zip xs ys)
+  return ps
 
 -- Test cases for point calculations
-data PtCase = PtCase { ptA::Pt2, ptB::Pt2, ptSum::Pt2, ptDif::Pt2, ptMid::Pt2, ptDot::Double, ptCross::Double }
+data PtCase = PtCase
+  { ptA::Pt2 Double
+  , ptB::Pt2 Double
+  , ptSum::Pt2 Double
+  , ptDif::Pt2 Double
+  , ptMid::Pt2 Double
+  , ptDot::Double
+  , ptCross::Double }
   deriving Show
 ptCase (ptA, ptB, ptSum, ptDiff, ptMid, ptDot, ptCross) = PtCase ptA ptB ptSum ptDiff ptMid ptDot ptCross
+
 pt2TestSamples =
   fmap ptCase
     --   ptA          ptB             ptSum         ptDiff        ptMid           ptDot  ptCross )
@@ -57,7 +56,10 @@ pt2Test p = TestLabel (pt2Name p) $ TestList [
 pt2Tests = fmap pt2Test pt2TestSamples
 
 -- Test cases for triangle calculations.
-data TriCase = TriCase { triX::TriPt2, triMid::Pt2, triArea::Double }
+data TriCase = TriCase 
+  { triX::TriPt2 Double
+  , triMid::Pt2 Double
+  , triArea::Double }
   deriving Show
 triTestSamples = [
   TriCase (TriPt2 (Pt2 (0,0), Pt2 (1,3), Pt2 (2,0))) (Pt2 (1,1)) 3,
@@ -73,32 +75,41 @@ triPt2Tests = concatMap getCases triTestSamples
 
 
 -- Test cases for polygon calculations.
-nextPoly (ps,r) n = ((p, sz, name) : ps, r')
-  where
-    (p,r1) = randPts r n
-    (sz,r') = randomR (-10.0, 10.0) r1
-    name = "poly#" ++ show n
+nextPoly :: Int -> RandomState (PolyPt2 Double, Double, String)
+nextPoly n = do
+  pts <- randPts n
+  return (pts, fromIntegral n, "poly#" ++ show n)
 
-testPolys = fst $ foldl' nextPoly ([],rand) [3..100]
+randPolys :: RandomState [(PolyPt2 Double, Double, String)]
+randPolys = do
+  p3 <- nextPoly 3
+  p4 <- nextPoly 4
+  -- ps <- sequence $ mapM nextPoly [3..100::Int]
+  let ps = [p3, p4]
+  return ps
 
+testPolys :: [(PolyPt2 Double, Double, String)]
+testPolys = runSeedRand 1 randPolys
+
+getTestPoly :: Int -> (PolyPt2 Double, Double, String)
 getTestPoly n = head $ filter isN testPolys
   where
     isN (p,sz,name) = name == "poly#" ++ show n
 
+testPoly :: Int -> IO ()
 testPoly n = do
-  let (poly,sz,name) = getTestPoly n
-  let p = polyNormPt2 sz poly
+  let (p,sz,name) = getTestPoly n
   let (area,pp) = polyAreaMidPt2 p
   let midQ = dotPt2 pp pp
   putStrLn name
-  putStrLn $ show (length poly) ++ " points"
+  putStrLn $ show (length p) ++ " points"
   putStrLn $ show area ++ " should be " ++ show sz ++ " (diff: " ++ show ( abs $ area - sz ) ++ ")"
   putStrLn $ "midpoint " ++ show pp ++ ",should be 0 (dist: " ++ show ( sqrt midQ ) ++ ")"
-  putStrLn $ "Original Area was: " ++ show (polyAreaPt2 poly)
-  putStrLn $ "Polygon is : " ++ show poly
+  putStrLn $ "Polygon is : " ++ show p
 
 polyEpsilon = 1e-10
-polyNormPt2Test (p, sz, name) = TestLabel name
+-- polyNormPt2Test :: PolyPt2 Double -> Double -> String -> IO ()
+polyNormPt2Test (p,sz,name) = TestLabel name
   $ TestList [
     TestCase $ assertBool areaMessage aOk,
     TestCase $ assertBool midMessage midOk ]
@@ -110,3 +121,9 @@ polyNormPt2Test (p, sz, name) = TestLabel name
     midMessage = "Midpoint " ++ show mid ++ " must be close to 0"
 
 polyNormTestCases = fmap polyNormPt2Test testPolys
+
+shapesTests = TestList [
+  TestList polyNormTestCases,
+--  TestList pt2Tests,
+  TestList triPt2Tests
+  ]

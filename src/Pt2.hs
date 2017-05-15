@@ -1,5 +1,5 @@
 module Pt2 (
-  Pt2(..),
+  Pt2(..), pt2,
   dotPt2,
   crossPt2,
   mulPt2,
@@ -8,6 +8,9 @@ module Pt2 (
 ) where
 
 newtype Pt2 a = Pt2 (a,a) deriving Eq
+
+pt2 :: a -> a -> Pt2 a
+pt2 x y = Pt2 (x,y)
 
 instance Show a => Show (Pt2 a) where show p = "<Pt2>" ++ show (x,y) where Pt2 (x,y) = p
 
@@ -18,6 +21,9 @@ instance Num a => Num (Pt2 a) where
   abs             = _unaryOp abs
   signum          = _unaryOp signum
   fromInteger i   = Pt2 (fromInteger i,fromInteger i)
+
+instance Functor Pt2 where
+  fmap f (Pt2 (a,b)) = Pt2 (f a, f b)
 
 mulPt2 :: Num a => Pt2 a -> a  -> Pt2 a
 mulPt2            = _scalarOp (*)

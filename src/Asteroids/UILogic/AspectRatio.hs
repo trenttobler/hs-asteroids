@@ -5,9 +5,9 @@ module Asteroids.UILogic.AspectRatio (
     obscureBorders
 ) where
 
+import           Asteroids.UILogic.Drawable
 import           Graphics.UI.GLUT
 import           Pt2
-import           Utils
 
 newtype AspectRatio = AspectRatio Size
 
@@ -38,11 +38,11 @@ wideAspectRatio xx yy = adjusted
 
 obscureBorders :: IO ()
 obscureBorders = do
-    renderPrimitive LineLoop $ mapGLPt2s border
-    renderPrimitive Polygon  $ mapGLPt2s fillLt
-    renderPrimitive Polygon  $ mapGLPt2s fillRt
-    renderPrimitive Polygon  $ mapGLPt2s fillUp
-    renderPrimitive Polygon  $ mapGLPt2s fillDn
+    drawPoly $ pt2ToPoly border
+    fillPoly $ pt2ToPoly fillLt
+    fillPoly $ pt2ToPoly fillRt
+    fillPoly $ pt2ToPoly fillUp
+    fillPoly $ pt2ToPoly fillDn
   where
     m = 10
     border = [Pt2 (-0.99,-0.99), Pt2 (-0.99, 0.99), Pt2 ( 0.99, 0.99), Pt2 ( 0.99,-0.99)]
