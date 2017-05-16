@@ -1,8 +1,6 @@
 module GameState (
   Drawable(..),
   GameState,
-  adjustAspectRatio,
-  obscureAspectRatio,
   setAspectRatioSize,
   newGameState,
   getGame,
@@ -19,16 +17,14 @@ module GameState (
 import           Asteroids.GameLogic.Game
 import           Asteroids.GameLogic.GameOptions
 import           Asteroids.GameLogic.KeyAction
-import           Asteroids.GameLogic.Ship
 import           Asteroids.UILogic.AspectRatio
 import           Asteroids.UILogic.Drawable
 import           Asteroids.UILogic.KeyBindings
+import           Control.Monad
 import           Data.IORef
 import           Data.Time
 import           Graphics.UI.GLUT
 import           System.Exit
-import           System.IO
-
 
 data PlayStatus =
   StartingGame
@@ -44,8 +40,7 @@ data GameState = GameState {
   optionsRef     :: IORef GameOptions,
   keyBindingsRef :: IORef KeyBindings,
   lastTimeRef    :: IORef UTCTime,
-  _statusRef     :: IORef PlayStatus,
-  shipRef        :: IORef ShipState }
+  _statusRef     :: IORef PlayStatus }
 
 instance Drawable GameState where
   draw state = do
@@ -55,15 +50,14 @@ instance Drawable GameState where
 newGameState :: Int -> Int -> IO GameState
 newGameState seed level = do
   currentTime <- getCurrentTime
-  game <- newGame seed level
+  let game = newGame seed level
   aRef <- newIORef defaultAspectRatio
   gRef <- newIORef game
   oRef <- newIORef defaultGameOptions
   kRef <- newIORef defaultKeyBindings
   cRef <- newIORef currentTime
   stRef <- newIORef StartingGame
-  shRef <- newIORef initialShipState
-  return $ GameState aRef gRef oRef kRef cRef stRef shRef
+  return $ GameState aRef gRef oRef kRef cRef stRef
 
 getIO :: (GameState -> IORef a) -> GameState -> IO a
 getIO prop state = readIORef (prop state)
@@ -96,13 +90,8 @@ getLastTime    = getIO lastTimeRef
 setLastTime :: GameState -> UTCTime -> IO ()
 setLastTime    = setIO lastTimeRef
 
-getShip :: GameState -> IO ShipState
-getShip = getIO shipRef
-setShip :: GameState -> ShipState -> IO ()
-setShip = setIO shipRef
-
 setAspectRatioSize :: GameState -> Size -> IO ()
-setAspectRatioSize state size = setAspectRatio state $ AspectRatio size
+setAspectRatioSize state size = setAspectRatio state $ aspectRatio size
 
 updateGame::GameState -> IO ()
 updateGame state = do
@@ -111,11 +100,8 @@ updateGame state = do
   setLastTime state curTime
   let dt = realToFrac $ diffUTCTime curTime lastTime
   game <- getGame state
-  ship <- getShip state
-  setGame state (gameStep dt ship game)
-
-obscureAspectRatio :: GameState -> IO ()
-obscureAspectRatio _ = obscureBorders
+  let game' = gameStep dt game
+  setGame state game'
 
 restoreScreen :: GameState -> IO ()
 restoreScreen state = do
@@ -127,39 +113,35 @@ restoreScreen state = do
 -- actions that can be performed via key mappings
 
 performAction :: KeyAction -> GameState -> KeyState -> IO ()
-performAction ToggleFullScreen state Down = do
-  options <- getOptions state
-  setOptions state (toggleOption options FullScreenOption)
+performAction ToggleFullScreen = downOnlyAction fullScreenAction
+performAction Thrust = performGameAction thrustAction
+performAction TurnLeft = performGameAction rotateLeftAction
+performAction TurnRight = performGameAction rotateRightAction
+performAction ExitGame = alwaysAction exitSuccess
+performAction Unknown = alwaysAction noAction
+performAction a = downOnlyAction logUnknown
+  where logUnknown _ = putStrLn $ "Action not implemented: " ++ show a
+
+gameKeyAction :: KeyState -> (GameAction -> (Game->Game))
+gameKeyAction Down = startAction
+gameKeyAction Up   = endAction
+
+performGameAction :: GameAction -> GameState -> KeyState -> IO ()
+performGameAction gameAction state upOrDown = do
+  game <- getGame state
+  setGame state $ gameKeyAction upOrDown gameAction game
+
+fullScreenAction :: GameState -> IO ()
+fullScreenAction state = do
+  opts <- getOptions state
+  setOptions state (toggleOption opts FullScreenOption)
   restoreScreen state
 
-performAction TurnLeft state upOrDown = performShipTurn state
-  $ shipRotate TurnShipLeft upOrDown
+downOnlyAction :: (GameState -> IO ()) -> GameState -> KeyState -> IO ()
+downOnlyAction f state upOrDown = when (upOrDown == Down) $ f state
 
-performAction TurnRight state upOrDown = performShipTurn state
-  $ shipRotate TurnShipRight upOrDown
+alwaysAction :: IO () -> GameState -> KeyState -> IO ()
+alwaysAction a _ _ = a
 
-performAction Thrust state upOrDown = do
-    ship <- getShip state
-    setShip state $ ship { shipThrusting = thrusting }
-  where thrusting = upOrDown == Down
-
-performAction ExitGame _ _ = exitSuccess
-
-performAction Unknown _ _ = return ()
-
-performAction _ _ Up = return ()
-
-performAction a _ _ = do
-  putStrLn $ "Action not implemented: " ++ show a
-  hFlush stdout
-
-shipRotate :: ShipRotation -> KeyState -> ShipRotation
-shipRotate dir Down = dir
-shipRotate _ Up     = StopShipTurning
-
-performShipTurn :: GameState -> ShipRotation -> IO ()
-performShipTurn state dir = do
-    ship <- getShip state
-    let ship' = ship { shipRotation = dir }
-    setShip state ship'
-
+noAction :: IO ()
+noAction = return ()

@@ -1,8 +1,5 @@
 module Asteroids.Helpers (
-  fillIn,
-  showLabels,
-  between,
-  modularInterval
+  module Asteroids.Helpers
 )
 where
 
@@ -26,3 +23,6 @@ modularInterval (lower,upper) x =
   if between (lower,upper) x
   then x
   else ( (x - lower) `mod'` (upper - lower)) + lower
+
+fromPolar :: Floating t => t -> t -> (t, t)
+fromPolar d a = (d * cos a, d * sin a)

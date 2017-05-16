@@ -1,45 +1,45 @@
-module Asteroids.GameLogic.Ship (
-  Ship, ShipState(..), ShipRotation(..),
-  createShip, initialShipState,
-  shipStep,
-) where
+module Asteroids.GameLogic.Ship
+  ( module Asteroids.GameLogic.Physical
+  , Ship, ShipRotation(..)
+  , createShip
+  , shipStep
+
+  , setShipThrust
+  , setShipRotation
+  ) where
 
 import           Asteroids.GameLogic.Physical
 import           Asteroids.UILogic.Drawable
-import           Pt2
 
 data ShipRotation = TurnShipLeft
                   | TurnShipRight
                   | StopShipTurning
   deriving (Enum,Show,Eq)
 
-data ShipState = ShipState { shipRotation :: ShipRotation, shipThrusting :: Bool }
-  deriving (Eq,Show)
-
-data Ship = Ship { ship'Position  :: Physical,
-                   ship'Thrusting::Bool }
+data Ship = Ship
+  { shipPos       :: Physical
+  , rotateShip    :: ShipRotation
+  , thrustShip    :: Bool }
 
 instance Show Ship where
-  show s = "thrust:  " ++ show (ship'Thrusting s) ++ "\n"
-                       ++ show (ship'Position s)
+  show s = "spin:    " ++ show (rotateShip s) ++ "\n" ++
+           "thrust:  " ++ show (thrustShip s) ++ "\n" ++
+                          show (shipPos s)
 
 instance Drawable Ship where
   draw ship = innerDrawing $ do
-                  draw (ship'Position ship)
-                  drawThrust (ship'Thrusting ship)
+                  draw (shipPos ship)
+                  drawThrust $ thrustShip ship
                   shipColor >> drawPoly shipShape
 
-initialShipState :: ShipState
-initialShipState = ShipState StopShipTurning False
-
-createShip :: Pt2 Coord -> Coord -> Ship
-createShip pos heading = Ship p False
-  where p = Physical {
-    phys'Position = pos,
-    phys'Heading = heading,
-    phys'Velocity = Pt2 (0,0),
-    phys'Spin = 0
-  }
+createShip :: Position -> Angle -> Ship
+createShip pos heading = Ship
+  { shipPos = Physical { physPos = pos
+                       , physAngle = heading
+                       , physVel = Pt2 (0,0)
+                       , physSpin = 0 }
+  , rotateShip = StopShipTurning
+  , thrustShip = False }
 
 shipSize :: Coord
 shipSize = 0.02
@@ -66,20 +66,25 @@ thrustColor = drawColor 1 0 0
 
 drawThrust :: Bool -> IO ()
 drawThrust False = return ()
-drawThrust True  = do
-  thrustColor >> drawPoly thrustShape
+drawThrust True  = thrustColor >> drawPoly thrustShape
 
 turnShip :: ShipRotation -> Coord ->  Coord
 turnShip TurnShipLeft _  = turnRate
-turnShip TurnShipRight _ = (-turnRate)
+turnShip TurnShipRight _ = -turnRate
 turnShip _ _             = 0
 
-shipStep :: Ship -> Coord -> ShipState -> Ship
-shipStep old dt st =  Ship p' (shipThrusting st)
-  where
-    p' = physStep dt forced
-    forced = physForce (ship'Position old) accel (turnShip $ shipRotation st)
-    accel = if shipThrusting st then goFaster else steady
-    steady vel = vel
-    unitHeading = getUnitHeading (ship'Position old)
-    goFaster vel = vel + mulPt2 unitHeading dt
+shipStep :: TimeDelta -> Ship -> Ship
+shipStep dt ship =  ship { shipPos = p' }
+  where p' = step dt forced
+        forced = physForce accel torque (shipPos ship)
+        torque = turnShip $ rotateShip ship
+        accel = if thrustShip ship then goFaster else steady
+        steady vel = vel
+        unitHeading = getUnitHeading (shipPos ship)
+        goFaster vel = vel + mulPt2 unitHeading dt
+
+setShipThrust :: Bool -> Ship -> Ship
+setShipThrust b ship = ship { thrustShip = b }
+
+setShipRotation :: ShipRotation -> Ship -> Ship
+setShipRotation r ship = ship { rotateShip = r }

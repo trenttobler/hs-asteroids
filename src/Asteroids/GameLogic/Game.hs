@@ -1,32 +1,46 @@
 module Asteroids.GameLogic.Game (
+  module Asteroids.GameLogic.Asteroid,
+  module Asteroids.GameLogic.Ship,
   Game(..),
   newGame,
-  gameStep
+  gameStep,
+  modifyShip
 )
 where
 
-import           Asteroids.GameLogic.Entity
+import           Asteroids.GameLogic.Asteroid
 import           Asteroids.GameLogic.Ship
 import           Asteroids.UILogic.Drawable
-import           Pt2
 import           Rand
 
 data Game = Game
-  { game'Entities :: [Entity]
-  , game'Seed :: Int
-  , game'Level :: Int }
+  { asteroids :: [Asteroid]
+  , gameSeed  :: Int
+  , gameLevel :: Int
+  , ship      :: Ship }
 
 instance Drawable Game where
-  draw game = mapM_ draw (game'Entities game)
-        
-newGame :: Int -> Int -> IO Game
-newGame seed level = let
-  ship = makeShip (Pt2 (0,0)) 0
-  asteroids = runSeedRand seed (sequence [ makeAsteroid (0.1000/fromIntegral (s `mod` 10)) s | s <- [1..level] ])
-  game = Game (ship:asteroids) seed level
-  in return game
+  draw game = do
+    draw $ ship game
+    mapM_ draw $ asteroids game
 
-gameStep :: Coord -> ShipState -> Game -> Game
-gameStep dt ship g = g { game'Entities = es }
-  where es = fmap step (game'Entities g)
-        step e = (entity'Step e) dt ship
+newGame :: Int -> Int -> Game
+newGame seed level = Game
+  { asteroids = runSeedRand seed $ createRandomAsteroids level
+  , gameSeed = seed
+  , gameLevel = level
+  , ship = createShip (pt2 0 0) 0 }
+
+createRandomAsteroids :: Int -> RandomState [Asteroid]
+createRandomAsteroids level =
+  sequence [ createRandomAsteroid (sz s) s | s <- [1..level] ]
+  where sz s = 0.1000 / fromIntegral (s `mod` 10)
+
+gameStep :: TimeDelta -> Game -> Game
+gameStep dt game = game'
+  where asteroids' = fmap (asteroidStep dt) (asteroids game)
+        ship' = shipStep dt (ship game)
+        game' = game { asteroids = asteroids', ship = ship' }
+
+modifyShip :: (Ship->Ship) -> Game -> Game
+modifyShip f game = game { ship = f $ ship game }

@@ -1,62 +1,78 @@
-module Asteroids.GameLogic.Physical (
-  Physical(..), newPhys,
-  physStep,
-  physForce,
-  getUnitHeading
-)
-where
+module Asteroids.GameLogic.Physical
+  ( Physics(..)
+  , Physical(..)
+  , TimeDelta   
+  , Position    
+  , Velocity    
+  , Acceleration
+  , Angle       
+  , Spin        
+  , Torque      
+  , newPhys
+  , physForce
+  , getUnitHeading
+  ) where
 
 import           Asteroids.Helpers
 import           Asteroids.UILogic.Drawable
-import           Pt2
 
-data Physical = Physical {
-  phys'Position :: Pt2 Coord,
-  phys'Velocity :: Pt2 Coord,
-  phys'Heading  :: Coord,
-  phys'Spin     :: Coord
-}
+type TimeDelta    = Coord
+type Position     = Pt2 Coord
+type Velocity     = Pt2 Coord
+type Acceleration = Velocity -> Velocity
+type Angle        = Coord
+type Spin         = Coord
+type Torque       = Spin -> Spin
 
-instance Show Physical
-  where
-    show = showLabels "\n" [("pos:     ", (show . phys'Position)),
-                            ("vel:     ", (show . phys'Velocity)),
-                            ("heading: ", (show . phys'Heading)),
-                            ("spin:    ", (show . phys'Spin))]
+class Physics a where
+  physical :: a -> Physical
+  step :: TimeDelta -> a -> a
+
+data Physical = Physical
+  { physPos   :: Position
+  , physVel   :: Velocity
+  , physAngle :: Angle
+  , physSpin  :: Spin     }
+
+instance Show Physical where
+  show = showLabels "\n" [("pos:     ", show . physPos),
+                          ("vel:     ", show . physVel),
+                          ("heading: ", show . physAngle),
+                          ("spin:    ", show . physSpin)]
 
 instance Drawable Physical
-  where draw p = adjustOrigin (phys'Position p) (phys'Heading p)
+  where draw p = adjustOrigin (physPos p) (physAngle p)
+
+instance Physics Physical where
+  physical a = a
+  step = physStep
 
 newPhys :: Coord -> Coord -> Coord -> Coord -> Coord -> Coord -> Physical
-newPhys x y dx dy w dw = Physical (pt2 x y) (pt2 dx dy) w dw
+newPhys x y dx dy = Physical (pt2 x y) (pt2 dx dy)
 
-physForce :: Physical -> (Pt2 Coord->Pt2 Coord) -> (Coord->Coord) -> Physical
-physForce old accel torque = old { phys'Velocity = vel', phys'Spin = spin' }
-  where
-    vel' = accel $ phys'Velocity old
-    spin' = torque $ phys'Spin old
+physForce :: Acceleration -> Torque -> Physical -> Physical
+physForce accel torque old = old { physVel = vel', physSpin = spin' }
+  where vel' = accel $ physVel old
+        spin' = torque $ physSpin old
 
 getUnitHeading :: Physical -> Pt2 Coord
 getUnitHeading p = pt2 dx dy
-  where
-    heading = phys'Heading p
-    radians = -heading * pi / 180
-    dx = sin radians
-    dy = cos radians
+  where a = physAngle p
+        r = -a * pi / 180
+        (dx,dy) = (sin r, cos r)
 
 spaceLimitX :: (Coord,Coord)
 spaceLimitY :: (Coord,Coord)
 spaceLimitX = (-1.2,1.2)
 spaceLimitY = (-1.2,1.2)
 
-modPt2 :: Pt2 Coord -> Pt2 Coord
+modPt2 :: Position -> Position
 modPt2 (Pt2 (x,y)) = pt2 x' y'
-  where x' = (modularInterval spaceLimitX x)
-        y' = (modularInterval spaceLimitY y)
+  where x' = modularInterval spaceLimitX x
+        y' = modularInterval spaceLimitY y
 
-physStep :: Coord -> Physical -> Physical
-physStep dt old = old {phys'Position = pos', phys'Heading = heading' }
-  where
-    pos' = modPt2 $ phys'Position old + mulPt2 (phys'Velocity old) dt
-    heading' = modularInterval (0,360) $ phys'Heading old + (phys'Spin old) * dt
+physStep :: TimeDelta -> Physical -> Physical
+physStep dt old = old {physPos = pos', physAngle = heading' }
+  where pos' = modPt2 $ physPos old + mulPt2 (physVel old) dt
+        heading' = modularInterval (0,360) $ physAngle old + physSpin old * dt
 

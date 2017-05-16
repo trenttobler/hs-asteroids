@@ -1,28 +1,31 @@
-module Asteroids.GameLogic.Asteroid (
-  Asteroid,
-  createAsteroid,
-  asteroidStep
-) where
+module Asteroids.GameLogic.Asteroid
+  ( module Asteroids.GameLogic.Physical
+  , Asteroid
+  , createRandomAsteroid
+  , asteroidStep
+  ) where
 
 import           Asteroids.GameLogic.Physical
+import           Asteroids.Helpers
 import           Asteroids.UILogic.Drawable
 import           PolyPt2
-import           Pt2
 import           Rand
 
 data Asteroid = Asteroid {
-  asteroid'Draw :: Asteroid -> IO (),
-  asteroid'Seed :: Int,
-  asteroid'Size :: Coord,
-  asteroid'Phys :: Physical
+  asteroidDraw :: Asteroid -> IO (),
+  asteroidSeed :: Int,
+  asteroidSize :: Coord,
+  asteroidPhys :: Physical
 }
 
 instance Show Asteroid
-  where show a = concat ["Asteroid#", show (asteroid'Seed a),
-                         " (",        show (asteroid'Size a), ")" ]
+  where show a = concat ["Asteroid#", show (asteroidSeed a),
+                         " (",        show (asteroidSize a), ")" ]
 
 instance Drawable Asteroid where
-  draw a = (asteroid'Draw a) a
+  draw a = asteroidDraw a a
+
+type AsteroidMass = Coord
 
 randomDistRange :: (Coord, Coord)
 randomDistRange = (0.5,1.0)
@@ -30,19 +33,19 @@ randomDistRange = (0.5,1.0)
 randomAngleBias :: Coord
 randomAngleBias = 6.0
 
-createAsteroid :: Coord -> Int -> RandomState Asteroid
-createAsteroid size seed = do
+createRandomAsteroid :: AsteroidMass -> Int -> RandomState Asteroid
+createRandomAsteroid size seed = do
   pts <- randPts size
   pos <- createPos size
-  let asteroid = Asteroid { asteroid'Draw = drawAsteroid poly,
-                            asteroid'Seed = seed,
-                            asteroid'Size = size,
-                            asteroid'Phys = pos }
+  let asteroid = Asteroid { asteroidDraw = drawAsteroid poly,
+                            asteroidSeed = seed,
+                            asteroidSize = size,
+                            asteroidPhys = pos }
       poly = pt2ToPoly pts
   return asteroid
 
-asteroidStep :: Asteroid -> Coord -> a -> Asteroid
-asteroidStep old dt _ = old { asteroid'Phys = physStep dt (asteroid'Phys old) }
+asteroidStep :: TimeDelta -> Asteroid -> Asteroid
+asteroidStep dt old = old { asteroidPhys = step dt (asteroidPhys old) }
 
 createPos :: Coord -> RandomState Physical
 createPos size = do
@@ -67,9 +70,6 @@ dxR = (-0.03,0.03)
 dyR = (-0.03,0.03)
 dAngleR = (-1,1)
 
-fromPolar :: Floating t => t -> t -> (t, t)
-fromPolar d a = (d * cos a, d * sin a)
-
 randomAngles :: (Random a, RealFloat a) => Int -> (a, a) -> RandomState [a]
 randomAngles n w = do
   aseq' <- randRs w n
@@ -93,6 +93,6 @@ inAsteroidColor = drawColor 0.5 0.5 0.5
 
 drawAsteroid :: Poly2 -> Asteroid -> IO ()
 drawAsteroid poly a = innerDrawing $ do
-  draw $ asteroid'Phys a
+  draw $ asteroidPhys a
   inAsteroidColor
   drawPoly poly

@@ -3,8 +3,11 @@ module Asteroids.UILogic.Display (
   idle
 ) where
 
+import           Asteroids.UILogic.AspectRatio
+import           Asteroids.UILogic.Drawable
 import           Control.Concurrent
 import           GameState
+import           Graphics.Rendering.OpenGL.GL.CoordTrans
 import           Graphics.UI.GLUT
 
 display :: GameState -> DisplayCallback
@@ -13,8 +16,8 @@ display state = do
   loadIdentity
   aspect <- getAspectRatio state
   adjustAspectRatio aspect
-  draw state
-  obscureAspectRatio state
+  innerDrawing $ obscureBorders aspect
+  innerDrawing $ draw state
   swapBuffers
 
 idle :: GameState -> IdleCallback

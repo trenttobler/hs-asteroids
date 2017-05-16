@@ -1,52 +1,70 @@
 module Asteroids.UILogic.AspectRatio (
-    AspectRatio(..),
+    AspectRatio,
+    aspectRatio,
     adjustAspectRatio,
     defaultAspectRatio,
+    computeAspectRatio,
     obscureBorders
 ) where
 
 import           Asteroids.UILogic.Drawable
 import           Graphics.UI.GLUT
-import           Pt2
 
-newtype AspectRatio = AspectRatio Size
+data AspectRatio = AspectRatio
+  { aspectSize :: Size
+  , obscureBorders :: IO () }
+
+aspectRatio :: Size -> AspectRatio
+aspectRatio size = AspectRatio { aspectSize = size,
+                                 obscureBorders = obscureBorders' }
 
 defaultAspectRatio :: AspectRatio
-defaultAspectRatio = AspectRatio (Size 800 600)
+defaultAspectRatio = aspectRatio (Size 800 600)
 
 adjustAspectRatio :: AspectRatio -> IO ()
-adjustAspectRatio (AspectRatio (Size xx yy)) =
-    if xx < yy
-      then tallAspectRatio xx yy
-      else wideAspectRatio xx yy
+adjustAspectRatio aspect = let
+  (x,y) = computeAspectRatio aspect
+  (n,p) = (-1,1)
+  in do
+    ortho n n n p p p
+    scale x y 1
 
-tallAspectRatio :: GLsizei -> GLsizei -> IO ()
-tallAspectRatio xx yy = adjusted
+computeAspectRatio :: AspectRatio -> (GLfloat, GLfloat)
+computeAspectRatio aspect = let
+  (Size xx yy) = aspectSize aspect
+  in if xx < yy
+    then computeTallAspectRatio xx yy
+    else computeWideAspectRatio xx yy
+
+computeTallAspectRatio :: (Fractional t, Integral s) => s -> s -> (t, t)
+computeTallAspectRatio xx yy = adjusted
   where
     x = fromIntegral xx
     y = fromIntegral yy
-    d = x / y :: GLfloat
-    adjusted = scale 1 d 1
+    d = x / y
+    adjusted = (1,d)
 
-wideAspectRatio :: GLsizei -> GLsizei -> IO ()
-wideAspectRatio xx yy = adjusted
+computeWideAspectRatio :: (Fractional t, Integral s) => s -> s -> (t, t)
+computeWideAspectRatio xx yy = adjusted
   where
     x = fromIntegral xx
     y = fromIntegral yy
-    d = y / x :: GLfloat
-    adjusted = scale d 1 1
+    d = y / x
+    adjusted = (d,1)
 
-obscureBorders :: IO ()
-obscureBorders = do
-    drawPoly $ pt2ToPoly border
-    fillPoly $ pt2ToPoly fillLt
-    fillPoly $ pt2ToPoly fillRt
-    fillPoly $ pt2ToPoly fillUp
-    fillPoly $ pt2ToPoly fillDn
-  where
-    m = 10
-    border = [Pt2 (-0.99,-0.99), Pt2 (-0.99, 0.99), Pt2 ( 0.99, 0.99), Pt2 ( 0.99,-0.99)]
-    fillLt = [Pt2 (-m,-m), Pt2 (-m, m), Pt2 (-0.99, m), Pt2 (-0.99,-m)]
-    fillRt = [Pt2 ( m,-m), Pt2 ( m, m), Pt2 ( 0.99, m), Pt2 ( 0.99,-m)]
-    fillUp = [Pt2 (-m,-m), Pt2 ( m,-m), Pt2 ( m,-0.99), Pt2 (-m,-0.99)]
-    fillDn = [Pt2 (-m, m), Pt2 ( m, m), Pt2 ( m, 0.99), Pt2 (-m, 0.99)]
+obscureBorders' :: IO ()
+obscureBorders' = let
+  (x,y) = (0.9,0.9) -- fmap (*0.99) $ computeAspectRatio aspect
+  m = 10
+  borderLine = pt2ToPoly $ fmap Pt2 borderPts
+  borderFill = fmap (pt2ToPoly . fmap Pt2) borderPolyPts
+  borderPts =       [(-x,-y), (-x, y), ( x, y), ( x,-y)]
+  borderPolyPts = [ [(-m,-m), (-m, m), (-x, m), (-x,-m)]
+                  , [( m,-m), ( m, m), ( x, m), ( x,-m)]
+                  , [(-m,-m), ( m,-m), ( m,-y), (-m,-y)]
+                  , [(-m, m), ( m, m), ( m, y), (-m, y)] ]
+  in do
+    drawColor 0.5 1 0.5
+    mapM_ fillPoly borderFill
+    drawColor 0 1 1
+    drawPoly borderLine

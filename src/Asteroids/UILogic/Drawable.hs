@@ -1,4 +1,5 @@
 module Asteroids.UILogic.Drawable (
+  module Pt2,
   Drawable(..),
   Coord,
   Poly2,
@@ -49,4 +50,4 @@ adjustOrigin p r = do
         rotate (coordToGL r) $ Vector3 0 0 (1::GLfloat)
 
 innerDrawing :: IO () -> IO ()
-innerDrawing f = preservingMatrix f
+innerDrawing = preservingMatrix
