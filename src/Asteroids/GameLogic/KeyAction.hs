@@ -1,11 +1,7 @@
 module Asteroids.GameLogic.KeyAction
   ( GameAction(..)
   , KeyAction(..)
-  , keyActionName
-  , allKeyActions
-  , thrustAction
-  , rotateLeftAction
-  , rotateRightAction
+  , applyGameAction, actionName
   ) where
 
 import Asteroids.GameLogic.Game
@@ -17,42 +13,65 @@ data KeyAction =
   | TurnRight
   | Thrust
   | Fire
-  deriving ( Show, Enum )
+  | InsertCoin
+  deriving ( Show, Enum, Eq )
 
 
 data GameAction = GameAction
-  { gameActionName :: String
+  { keyAction :: KeyAction
+  , gameActionName :: String
   , startAction :: Game -> Game
   , endAction :: Game -> Game }
 
 instance Show GameAction where
   show = gameActionName
 
-allKeyActions :: [KeyAction]
-allKeyActions = [ Unknown ..]
+allGameActions :: [GameAction]
+allGameActions = [ thrustAction
+               , rotateLeftAction
+               , rotateRightAction
+               , coinInsertedAction ]
 
-keyActionName :: KeyAction -> String
+actionName :: KeyAction -> String
+actionName k = gameActionName' $ findAction k
+  where gameActionName' Nothing = "(Not Implemented)"
+        gameActionName' (Just ga) = gameActionName ga
 
-keyActionName ToggleFullScreen = "Toggle FullScreen"
-keyActionName ExitGame         = "Exit Game"
-keyActionName k                = "(Unknown:" ++ show k ++ ")"
+findAction :: KeyAction -> Maybe GameAction
+findAction k = found' ks
+  where ks = filter (\x -> keyAction x == k) allGameActions
+        found' []     = Nothing
+        found' (x:_)  = Just x
 
+applyGameAction :: KeyAction -> (GameAction -> Game -> Game) -> Game -> Game
+applyGameAction k startOrEnd = applyGameAction' $ findAction k
+  where applyGameAction' Nothing = id
+        applyGameAction' (Just ga) = startOrEnd ga
 
 thrustAction :: GameAction
 thrustAction = GameAction
-  { gameActionName = "Thrust"
+  { keyAction = Thrust
+  , gameActionName = "Thrust"
   , startAction = modifyShip $ setShipThrust True
   , endAction = modifyShip $ setShipThrust False }
 
 rotateLeftAction :: GameAction
 rotateLeftAction = GameAction
-  { gameActionName = "Turn Left"
+  { keyAction = TurnLeft
+  , gameActionName = "Turn Left"
   , startAction = modifyShip $ setShipRotation TurnShipLeft
   , endAction = modifyShip $ setShipRotation StopShipTurning }
 
 rotateRightAction :: GameAction
 rotateRightAction = GameAction
-  { gameActionName = "Turn Right"
+  { keyAction = TurnRight
+  , gameActionName = "Turn Right"
   , startAction = modifyShip $ setShipRotation TurnShipRight
   , endAction = modifyShip $ setShipRotation StopShipTurning }
 
+coinInsertedAction :: GameAction
+coinInsertedAction = GameAction
+  { keyAction = InsertCoin
+  , gameActionName = "Insert Coin"
+  , startAction = coinInserted
+  , endAction = id }

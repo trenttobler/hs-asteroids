@@ -1,5 +1,5 @@
-module Shapes_Test (
-  shapesTests
+module PolyPt2_Test (
+  polyPt2Tests
 ) where
 
 import           Control.Monad
@@ -14,46 +14,6 @@ import           PolyPt2
 import           Pt2
 import           TriPt2
 import           TestUtils
-
-polyPtRange = (-10::Double,10::Double)
-
-randPts :: Int -> RandomState [Pt2 Double]
-randPts n = do
-  xs <- randRs polyPtRange n
-  ys <- randRs polyPtRange n
-  let ps = fmap Pt2 (zip xs ys)
-  return ps
-
--- Test cases for point calculations
-data PtCase = PtCase
-  { ptA::Pt2 Double
-  , ptB::Pt2 Double
-  , ptSum::Pt2 Double
-  , ptDif::Pt2 Double
-  , ptMid::Pt2 Double
-  , ptDot::Double
-  , ptCross::Double }
-  deriving Show
-ptCase (ptA, ptB, ptSum, ptDiff, ptMid, ptDot, ptCross) = PtCase ptA ptB ptSum ptDiff ptMid ptDot ptCross
-
-pt2TestSamples =
-  fmap ptCase
-    --   ptA          ptB             ptSum         ptDiff        ptMid           ptDot  ptCross )
-    --  ------------- -------------   -----------   ------------- --------------- ------ --------
-    [ (  Pt2 (3,5)   , Pt2 (1,2)     , Pt2 (4,7)   , Pt2 (2,3)   , Pt2 (2,3.5)   , 13   ,  1     ),
-      (  Pt2 (0,1)   , Pt2 (1,0)     , Pt2 (1,1)   , Pt2 (-1,1)  , Pt2 (0.5,0.5) ,  0   ,  1     ),
-      (  Pt2 (1,1)   , Pt2 (-1,-3)   , Pt2 (0,-2)  , Pt2 (2,4)   , Pt2 (0,-1)    , -4   , -2     )
-      ]
-
-pt2Name p = show (ptA p) ++ " TO " ++ show (ptB p)
-pt2Test p = TestLabel (pt2Name p) $ TestList [
-  TestCase $ assertEqual "(+)" (ptSum p) (ptA p + ptB p),
-  TestCase $ assertEqual "(-)" (ptDif p) (ptA p - ptB p),
-  TestCase $ assertEqual "midPt2" (ptMid p) (midPt2 (ptA p) (ptB p)),
-  TestCase $ assertEqual "dotPt2" (ptDot p) (dotPt2 (ptA p) (ptB p)),
-  TestCase $ assertEqual "midPt2" (ptCross p) (crossPt2 (ptA p) (ptB p))
-  ]
-pt2Tests = fmap pt2Test pt2TestSamples
 
 -- Test cases for triangle calculations.
 data TriCase = TriCase 
@@ -108,7 +68,6 @@ testPoly n = do
   putStrLn $ "Polygon is : " ++ show p
 
 polyEpsilon = 1e-10
--- polyNormPt2Test :: PolyPt2 Double -> Double -> String -> IO ()
 polyNormPt2Test (p,sz,name) = TestLabel name
   $ TestList [
     TestCase $ assertBool areaMessage aOk,
@@ -122,8 +81,4 @@ polyNormPt2Test (p,sz,name) = TestLabel name
 
 polyNormTestCases = fmap polyNormPt2Test testPolys
 
-shapesTests = TestList [
-  TestList polyNormTestCases,
---  TestList pt2Tests,
-  TestList triPt2Tests
-  ]
+polyPt2Tests = TestList [ TestList polyNormTestCases, TestList triPt2Tests ]

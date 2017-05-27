@@ -16,7 +16,7 @@ reshape state size = do
   viewport $= (Position 0 0, size)
 
 keyboardMouse :: GameState -> KeyboardMouseCallback
-keyboardMouse state key keyState modifiers _ = do
+keyboardMouse state key keyState _ _ = do
     keyMap <- getKeyBindings state
-    let a = getAction keyMap key modifiers
+    let a = getAction keyMap key
     performAction a state keyState

@@ -3,19 +3,21 @@ module Asteroids.GameLogic.Asteroid
   , Asteroid
   , createRandomAsteroid
   , asteroidStep
+  , asteroidWorldLines
+  , asteroidBoundary
   ) where
 
 import           Asteroids.GameLogic.Physical
 import           Asteroids.Helpers
 import           Asteroids.UILogic.Drawable
-import           PolyPt2
 import           Rand
 
 data Asteroid = Asteroid {
-  asteroidDraw :: Asteroid -> IO (),
-  asteroidSeed :: Int,
-  asteroidSize :: Coord,
-  asteroidPhys :: Physical
+  asteroidDraw      :: Asteroid -> IO (),
+  asteroidSeed      :: Int,
+  asteroidSize      :: Coord,
+  asteroidPhys      :: Physical,
+  asteroidMaxPtDist :: Coord
 }
 
 instance Show Asteroid
@@ -37,12 +39,20 @@ createRandomAsteroid :: AsteroidMass -> Int -> RandomState Asteroid
 createRandomAsteroid size seed = do
   pts <- randPts size
   pos <- createPos size
-  let asteroid = Asteroid { asteroidDraw = drawAsteroid poly,
-                            asteroidSeed = seed,
-                            asteroidSize = size,
-                            asteroidPhys = pos }
+  let asteroid = Asteroid { asteroidDraw = drawAsteroid poly
+                          , asteroidSeed = seed
+                          , asteroidSize = size
+                          , asteroidPhys = pos `withSolid` polyPt2Lines pts
+                          , asteroidMaxPtDist = maxPt2Dist pts }
       poly = pt2ToPoly pts
   return asteroid
+
+asteroidBoundary :: Asteroid -> LinePt2 Coord
+asteroidBoundary a = LinePt2 (p0,p1)
+  where p = physPos $ asteroidPhys a
+        d = asteroidMaxPtDist a
+        p0 = p - pt2 d d
+        p1 = p + pt2 d d
 
 asteroidStep :: TimeDelta -> Asteroid -> Asteroid
 asteroidStep dt old = old { asteroidPhys = step dt (asteroidPhys old) }
@@ -57,7 +67,7 @@ createPos size = do
   let (x, y) = fromPolar d a
       (dx, dy) = fmap (/ sqrt size) (dx', dy')
       ds = s / size
-  return $ newPhys x y dx dy 0 ds
+  return $ newPhys (pt2 x y) (pt2 dx dy) 0 ds
 
 distR :: (Coord,Coord)
 angleR :: (Coord,Coord)
@@ -83,8 +93,7 @@ randPts size = do
   ptCnt <- randR (12,24)
   dists <- randRs randomDistRange ptCnt
   angles <- randomAngles ptCnt (1.0,randomAngleBias)
-  let pts = point <$> zip dists angles
-      point (d,a) = Pt2 (d * cos a,d * sin a)
+  let pts = pt2PolarRadians <$> zip dists angles
       pts' = polyNormPt2 size pts
   return pts'
 
@@ -96,3 +105,6 @@ drawAsteroid poly a = innerDrawing $ do
   draw $ asteroidPhys a
   inAsteroidColor
   drawPoly poly
+
+asteroidWorldLines :: Asteroid -> [LinePt2 Coord]
+asteroidWorldLines asteroid = solidWorldLines $ asteroidPhys asteroid

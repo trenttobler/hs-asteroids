@@ -1,63 +1,57 @@
-module GameState (
-  Drawable(..),
-  GameState,
-  setAspectRatioSize,
-  newGameState,
-  getGame,
-  updateGame,
-  getOptions,
-  setOptions,
-  performAction,
-  getKeyBindings,
-  setKeyBindings,
-  restoreScreen,
-  getAspectRatio
-) where
+module GameState
+  ( Drawable(..)
+  , GameState
+  , setAspectRatioSize
+  , newGameState
+  , getGame
+  , updateGame
+  , getOptions
+  , setOptions
+  , performAction
+  , getKeyBindings
+  , setKeyBindings
+  , restoreScreen
+  , getAspectRatio
+  ) where
 
-import           Asteroids.GameLogic.Game
-import           Asteroids.GameLogic.GameOptions
-import           Asteroids.GameLogic.KeyAction
-import           Asteroids.UILogic.AspectRatio
-import           Asteroids.UILogic.Drawable
-import           Asteroids.UILogic.KeyBindings
-import           Control.Monad
-import           Data.IORef
-import           Data.Time
-import           Graphics.UI.GLUT
-import           System.Exit
-
-data PlayStatus =
-  StartingGame
-  | PlayingGame
-  deriving ( Enum, Eq, Show )
+import Asteroids.GameLogic.Game
+import Asteroids.GameLogic.GameOptions
+import Asteroids.GameLogic.KeyAction
+import Asteroids.UILogic.AspectRatio
+import Asteroids.UILogic.Drawable
+import Asteroids.UILogic.KeyBindings
+import Control.Monad
+import Data.IORef
+import Data.Time
+import Graphics.UI.GLUT
+import System.Exit
 
 -- Need change this to a single IORef with nested game state...
 -- type GameStateRef = (IORef GameState)
 --
-data GameState = GameState {
-  aspectRef      :: IORef AspectRatio,
-  gameRef        :: IORef Game,
-  optionsRef     :: IORef GameOptions,
-  keyBindingsRef :: IORef KeyBindings,
-  lastTimeRef    :: IORef UTCTime,
-  _statusRef     :: IORef PlayStatus }
+data GameState = GameState
+  { aspectRef :: IORef AspectRatio
+  , gameRef :: IORef Game
+  , optionsRef :: IORef GameOptions
+  , keyBindingsRef :: IORef KeyBindings
+  , lastTimeRef :: IORef UTCTime
+  }
 
 instance Drawable GameState where
   draw state = do
     game <- getGame state
     draw game
 
-newGameState :: Int -> Int -> IO GameState
-newGameState seed level = do
+newGameState :: Int -> IO GameState
+newGameState seed = do
   currentTime <- getCurrentTime
-  let game = newGame seed level
+  let game = newGame seed
   aRef <- newIORef defaultAspectRatio
   gRef <- newIORef game
   oRef <- newIORef defaultGameOptions
   kRef <- newIORef defaultKeyBindings
   cRef <- newIORef currentTime
-  stRef <- newIORef StartingGame
-  return $ GameState aRef gRef oRef kRef cRef stRef
+  return $ GameState aRef gRef oRef kRef cRef
 
 getIO :: (GameState -> IORef a) -> GameState -> IO a
 getIO prop state = readIORef (prop state)
@@ -66,34 +60,39 @@ setIO :: (GameState -> IORef a) -> GameState -> a -> IO ()
 setIO prop state = writeIORef (prop state)
 
 getKeyBindings :: GameState -> IO KeyBindings
-getKeyBindings  = getIO keyBindingsRef
+getKeyBindings = getIO keyBindingsRef
+
 setKeyBindings :: GameState -> KeyBindings -> IO ()
-setKeyBindings  = setIO keyBindingsRef
+setKeyBindings = setIO keyBindingsRef
 
 getOptions :: GameState -> IO GameOptions
-getOptions      = getIO optionsRef
+getOptions = getIO optionsRef
+
 setOptions :: GameState -> GameOptions -> IO ()
-setOptions      = setIO optionsRef
+setOptions = setIO optionsRef
 
 getGame :: GameState -> IO Game
-getGame         = getIO gameRef
+getGame = getIO gameRef
+
 setGame :: GameState -> Game -> IO ()
-setGame         = setIO gameRef
+setGame = setIO gameRef
 
 getAspectRatio :: GameState -> IO AspectRatio
-getAspectRatio  = getIO aspectRef
+getAspectRatio = getIO aspectRef
+
 setAspectRatio :: GameState -> AspectRatio -> IO ()
-setAspectRatio  = setIO aspectRef
+setAspectRatio = setIO aspectRef
 
 getLastTime :: GameState -> IO UTCTime
-getLastTime    = getIO lastTimeRef
+getLastTime = getIO lastTimeRef
+
 setLastTime :: GameState -> UTCTime -> IO ()
-setLastTime    = setIO lastTimeRef
+setLastTime = setIO lastTimeRef
 
 setAspectRatioSize :: GameState -> Size -> IO ()
 setAspectRatioSize state size = setAspectRatio state $ aspectRatio size
 
-updateGame::GameState -> IO ()
+updateGame :: GameState -> IO ()
 updateGame state = do
   lastTime <- getLastTime state
   curTime <- getCurrentTime
@@ -111,25 +110,23 @@ restoreScreen state = do
     else windowSize $= Size 640 400
 
 -- actions that can be performed via key mappings
-
 performAction :: KeyAction -> GameState -> KeyState -> IO ()
-performAction ToggleFullScreen = downOnlyAction fullScreenAction
-performAction Thrust = performGameAction thrustAction
-performAction TurnLeft = performGameAction rotateLeftAction
-performAction TurnRight = performGameAction rotateRightAction
-performAction ExitGame = alwaysAction exitSuccess
-performAction Unknown = alwaysAction noAction
-performAction a = downOnlyAction logUnknown
-  where logUnknown _ = putStrLn $ "Action not implemented: " ++ show a
+performAction k = case k of
+  ToggleFullScreen -> downOnlyAction fullScreenAction
+  ExitGame -> alwaysAction exitSuccess
+  Unknown -> alwaysAction noAction
+  _ -> performGameAction k
 
-gameKeyAction :: KeyState -> (GameAction -> (Game->Game))
+gameKeyAction :: KeyState -> (GameAction -> (Game -> Game))
 gameKeyAction Down = startAction
-gameKeyAction Up   = endAction
+gameKeyAction Up = endAction
 
-performGameAction :: GameAction -> GameState -> KeyState -> IO ()
-performGameAction gameAction state upOrDown = do
+performGameAction :: KeyAction -> GameState -> KeyState -> IO ()
+performGameAction k state upOrDown = do
   game <- getGame state
-  setGame state $ gameKeyAction upOrDown gameAction game
+  let game' = applyGameAction k keyAction' game
+      keyAction' = gameKeyAction upOrDown
+  setGame state game'
 
 fullScreenAction :: GameState -> IO ()
 fullScreenAction state = do

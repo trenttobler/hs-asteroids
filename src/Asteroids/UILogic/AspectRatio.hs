@@ -54,7 +54,7 @@ computeWideAspectRatio xx yy = adjusted
 
 obscureBorders' :: IO ()
 obscureBorders' = let
-  (x,y) = (0.9,0.9) -- fmap (*0.99) $ computeAspectRatio aspect
+  (x,y) = (1,1) -- fmap (*0.99) $ computeAspectRatio aspect
   m = 10
   borderLine = pt2ToPoly $ fmap Pt2 borderPts
   borderFill = fmap (pt2ToPoly . fmap Pt2) borderPolyPts

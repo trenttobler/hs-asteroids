@@ -1,13 +1,16 @@
-module PolyPt2 (
-  PolyPt2,
-  polyAreaPt2,
-  polyMidPt2,
-  polyAreaMidPt2,
-  polyNormPt2
-)
-where
+module PolyPt2
+  ( PolyPt2
+  , polyAreaPt2
+  , polyMidPt2
+  , polyAreaMidPt2
+  , polyNormPt2
+  , polyPt2Lines
 
-import           Pt2
+  , module LinePt2
+  , module TriPt2
+  ) where
+
+import           LinePt2
 import           TriPt2
 
 type PolyPt2 a = [Pt2 a]
@@ -41,3 +44,12 @@ polyNormPt2 sz pts = fmap norm pts'
     da = sqrt ( abs ( sz /  a ) )
     norm p = mulPt2 ( p - midP ) da
     pts' = if signum a * signum sz < 0 then reverse pts else pts
+
+polyPt2Lines :: [Pt2 a] -> [LinePt2 a]
+polyPt2Lines [] = []
+polyPt2Lines ps = wrappedPairs (head ps) ps []
+
+wrappedPairs :: Pt2 a -> [Pt2 a] -> [LinePt2 a] -> [LinePt2 a]
+wrappedPairs _ [] _ = []
+wrappedPairs a [z] pqs = LinePt2 (z, a) : pqs
+wrappedPairs a (b:c:zs) pqs = wrappedPairs a (c:zs) (LinePt2 (b, c) : pqs)

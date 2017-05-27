@@ -30,13 +30,17 @@ library
                      , Asteroids.UILogic.Display
                      , Asteroids.UILogic.Drawable
                      , Asteroids.UILogic.KeyBindings
+                     , Asteroids.UILogic.Letters
+                     , Asteroids.UILogic.TextScreen
                      , GameState
                      , PolyPt2
+                     , LinePt2
                      , Pt2
                      , Rand
                      , TriPt2
   build-depends:       base >= 4.7 && < 5
                      , clock
+                     , containers
                      , GLUT
                      , hashable
                      , mtl
@@ -67,7 +71,9 @@ test-suite asteroids-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
-  other-modules:       Shapes_Test
+  other-modules:       Pt2_Test
+                     , PolyPt2_Test
+                     , LinePt2_Test
                      , TestUtils
   build-depends:       base
                      , asteroids

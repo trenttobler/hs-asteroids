@@ -12,7 +12,7 @@ main = do
     (_progName, _args) <- getArgsAndInitialize
     initialDisplayMode $= [WithDepthBuffer, DoubleBuffered]
     _window <- createWindow "Haskell OpenGL Asteroids"
-    state <- newGameState 1 10
+    state <- newGameState 1
     reshapeCallback $= Just (reshape state)
     depthFunc $= Just Less
     keyboardMouseCallback $= Just (keyboardMouse state)
