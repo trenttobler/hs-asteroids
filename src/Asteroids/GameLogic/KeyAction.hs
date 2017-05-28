@@ -5,6 +5,7 @@ module Asteroids.GameLogic.KeyAction
   ) where
 
 import Asteroids.GameLogic.Game
+
 data KeyAction =
   Unknown
   | ToggleFullScreen
@@ -28,9 +29,10 @@ instance Show GameAction where
 
 allGameActions :: [GameAction]
 allGameActions = [ thrustAction
-               , rotateLeftAction
-               , rotateRightAction
-               , coinInsertedAction ]
+                 , rotateLeftAction
+                 , rotateRightAction
+                 , coinInsertedAction
+                 , fireAction ]
 
 actionName :: KeyAction -> String
 actionName k = gameActionName' $ findAction k
@@ -75,3 +77,10 @@ coinInsertedAction = GameAction
   , gameActionName = "Insert Coin"
   , startAction = coinInserted
   , endAction = id }
+
+fireAction :: GameAction
+fireAction = GameAction
+  { keyAction = Fire
+  , gameActionName = "Fire"
+  , startAction = modifyShip fireBullet
+  , endAction = modifyShip reloadBullet }

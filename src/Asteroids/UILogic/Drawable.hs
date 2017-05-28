@@ -4,7 +4,7 @@ module Asteroids.UILogic.Drawable
   , Coord, RgbType
   , Poly2
   , pt2ToPoly
-  , drawPoly, fillPoly, drawLine
+  , drawPoints, drawPoly, fillPoly, drawLine
   , drawColor
   , innerDrawing, adjustOrigin, moveTo
   , PixelColor
@@ -22,6 +22,9 @@ newtype Poly2 = Poly2 (IO ())
 pt2ToPoly::[Pt2 Coord] -> Poly2
 pt2ToPoly ps = Poly2 $ mapM_ mapGLPt2 ps
 
+drawPoints :: Poly2-> IO ()
+drawPoints (Poly2 p) = renderPrimitive Points p
+
 drawPoly :: Poly2 -> IO ()
 drawPoly (Poly2 p) = renderPrimitive LineLoop p
 
@@ -31,7 +34,7 @@ fillPoly (Poly2 p) = renderPrimitive Polygon p
 drawLine :: Poly2 -> IO ()
 drawLine (Poly2 p) = renderPrimitive LineStrip p
 
-drawColor::RgbType->RgbType->RgbType->IO ()
+drawColor :: RgbType -> RgbType -> RgbType -> IO ()
 drawColor x y z = color $ Color3 x y z
 
 type Coord = GLfloat
@@ -58,7 +61,6 @@ moveTo = translate . ptVector3
 
 innerDrawing :: IO () -> IO ()
 innerDrawing = preservingMatrix
-
 
 type RgbType = GLfloat
 newtype PixelColor = PixelColor (RgbType,RgbType,RgbType)

@@ -3,7 +3,7 @@ module Pt2
   , dotPt2, crossPt2
   , mulPt2, divPt2, midPt2
   , maxPt2Dist
-  , pt2PolarRadians
+  , pt2PolarRadians, pt2PolarDegrees
   ) where
 
 import           Data.List                    (foldl')
@@ -25,6 +25,10 @@ pt2Zero = pt2 0 0
 
 pt2PolarRadians :: Floating a => (a,a) -> Pt2 a
 pt2PolarRadians (d, a) = Pt2 (d * cos a,d * sin a)
+
+pt2PolarDegrees :: Floating a => (a,a) -> Pt2 a
+pt2PolarDegrees (d, a) = Pt2 (d * cos a',d * sin a')
+  where a' = a * pi / 180
 
 instance Show a => Show (Pt2 a) where show p = show (x,y) where Pt2 (x,y) = p
 

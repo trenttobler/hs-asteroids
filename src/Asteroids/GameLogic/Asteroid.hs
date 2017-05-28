@@ -2,11 +2,10 @@ module Asteroids.GameLogic.Asteroid
   ( module Asteroids.GameLogic.Physical
   , Asteroid
   , createRandomAsteroid
-  , asteroidStep
-  , asteroidWorldLines
-  , asteroidBoundary
+  , blowUpAsteroid
   ) where
 
+import           Asteroids.GameLogic.Constants
 import           Asteroids.GameLogic.Physical
 import           Asteroids.Helpers
 import           Asteroids.UILogic.Drawable
@@ -26,6 +25,12 @@ instance Show Asteroid
 
 instance Drawable Asteroid where
   draw a = asteroidDraw a a
+
+instance Physics Asteroid where
+  physical = asteroidPhys
+  step dt a = a { asteroidPhys = step dt (asteroidPhys a) }
+  boundary a = worldBoundary (ptDist a) a
+    where ptDist = (\d -> pt2 d d) . asteroidMaxPtDist
 
 type AsteroidMass = Coord
 
@@ -47,15 +52,8 @@ createRandomAsteroid size seed = do
       poly = pt2ToPoly pts
   return asteroid
 
-asteroidBoundary :: Asteroid -> LinePt2 Coord
-asteroidBoundary a = LinePt2 (p0,p1)
-  where p = physPos $ asteroidPhys a
-        d = asteroidMaxPtDist a
-        p0 = p - pt2 d d
-        p1 = p + pt2 d d
-
-asteroidStep :: TimeDelta -> Asteroid -> Asteroid
-asteroidStep dt old = old { asteroidPhys = step dt (asteroidPhys old) }
+blowUpAsteroid :: Asteroid -> [Asteroid]
+blowUpAsteroid _todoAsteroid = []
 
 createPos :: Coord -> RandomState Physical
 createPos size = do
@@ -97,14 +95,8 @@ randPts size = do
       pts' = polyNormPt2 size pts
   return pts'
 
-inAsteroidColor :: IO ()
-inAsteroidColor = drawColor 0.5 0.5 0.5
-
 drawAsteroid :: Poly2 -> Asteroid -> IO ()
 drawAsteroid poly a = innerDrawing $ do
   draw $ asteroidPhys a
-  inAsteroidColor
+  draw asteroidColor
   drawPoly poly
-
-asteroidWorldLines :: Asteroid -> [LinePt2 Coord]
-asteroidWorldLines asteroid = solidWorldLines $ asteroidPhys asteroid

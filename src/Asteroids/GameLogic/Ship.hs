@@ -1,19 +1,20 @@
 module Asteroids.GameLogic.Ship
   ( module Asteroids.GameLogic.Physical
+  , module Asteroids.GameLogic.Bullet
+
   , Ship, ShipRotation(..)
   , createShip
-  , shipStep
 
-  , setShipThrust
-  , setShipRotation
-  , shipWorldLines
-  , shipBoundary
-  , shipIsDead
+  , setShipThrust, setShipRotation, fireBullet, reloadBullet, setBullets
+
+  , shipIsDead, shipBullets
   ) where
 
 import           Asteroids.GameLogic.Physical
+import           Asteroids.GameLogic.Bullet
+import           Asteroids.GameLogic.Constants
 import           Asteroids.UILogic.Drawable
-import           Data.Maybe                   (isNothing)
+import           Data.Maybe                   (isNothing, catMaybes)
 
 data ShipRotation = TurnShipLeft
                   | TurnShipRight
@@ -24,22 +25,32 @@ data Ship = Ship
   { shipPos    :: Physical
   , rotateShip :: ShipRotation
   , thrustShip :: Bool
-  , shipDiedAt :: Maybe TimeDelta }
+  , shipDiedAt :: Maybe TimeDelta
+  , readyToFire :: Bool
+  , shipBullets :: [Bullet] }
 
 instance Show Ship where
-  show s = "spin:    " ++ show (rotateShip s) ++ "\n" ++
+  show s = "--SHIP--\n" ++
+           "spin:    " ++ show (rotateShip s) ++ "\n" ++
            "thrust:  " ++ show (thrustShip s) ++ "\n" ++
                           show (shipPos s)
 
 instance Drawable Ship where
   draw ship
     | isNothing $ shipDiedAt ship = innerDrawing $ do
-                                    draw (shipPos ship)
-                                    drawThrust $ thrustShip ship
-                                    shipColor >> drawPoly shipShape
+                                      mapM_ draw (shipBullets ship)
+                                      draw (shipPos ship)
+                                      drawThrust $ thrustShip ship
+                                      draw shipColor >> drawPoly shipShape
     | otherwise = innerDrawing $ do
+        mapM_ draw (shipBullets ship)
         draw (shipPos ship)
         drawExplode $ shipDiedAt ship
+
+instance Physics Ship where
+  physical = shipPos
+  step = shipStep
+  boundary = worldBoundary (pt2 d d) where d = maxPt2Dist shipPoly
 
 createShip :: Position -> Angle -> Ship
 createShip pos heading = Ship
@@ -47,30 +58,22 @@ createShip pos heading = Ship
               `withSolid` polyPt2Lines shipPoly
   , rotateShip = StopShipTurning
   , thrustShip = False
-  , shipDiedAt = Nothing }
+  , shipDiedAt = Nothing
+  , readyToFire = True
+  , shipBullets = [] }
 
-shipBoundary :: Ship -> LinePt2 Coord
-shipBoundary s = LinePt2 (p0,p1)
-  where p = physPos $ shipPos s
-        d = maxPt2Dist shipPoly
-        p0 = p - pt2 d d
-        p1 = p + pt2 d d
+setBullets :: [Bullet] -> Ship -> Ship
+setBullets b s = s { shipBullets = b }
 
-shipSize :: Coord
-shipSize = 0.02
+fireBullet :: Ship -> Ship
+fireBullet ship = if readyToFire ship
+                    then ship { shipBullets = bullet' : shipBullets ship
+                              , readyToFire = False }
+                    else ship
+  where bullet' = newBullet (shipPos ship)
 
-explosionSize :: Coord
-explosionSize = 0.25
-
-burstCount :: Int
-burstCount = 7
-
-burstAngle, explosionSpeed :: TimeDelta
-burstAngle = 2.0 * pi / fromIntegral burstCount
-explosionSpeed = 1
-
-starBurstColor :: PixelColor
-starBurstColor = pixelColor 1 0.5 0.2
+reloadBullet :: Ship -> Ship
+reloadBullet ship = ship { readyToFire = True }
 
 explodingNear, explodingFar :: TimeDelta -> TimeDelta
 explodingNear t = t * t * explosionSize
@@ -86,46 +89,35 @@ starBurst dt = sequence_ $ fmap burst [0..burstCount]
 drawExplode :: Maybe TimeDelta -> IO ()
 drawExplode (Just dt)
   | dt' > 1 = return ()
-  | otherwise = do
-      draw starBurstColor
-      starBurst dt'
+  | otherwise = draw explosionColor >> starBurst dt'
   where dt' = dt * explosionSpeed
 
 shipPoly :: [Pt2 Coord]
-shipPoly = [ Pt2 (-shipSize, -shipSize),
-             Pt2 ( 0,        2*shipSize),
-             Pt2 (shipSize,  -shipSize),
-             Pt2 ( 0,        -0.9*shipSize) ]
+shipPoly = [ Pt2 ( -0.5 * shipSize, -0.5 * shipSize),
+             Pt2 (    0,                   shipSize),
+             Pt2 (  0.5 * shipSize, -0.5 * shipSize),
+             Pt2 (    0,           -0.45 * shipSize) ]
 
 shipShape :: Poly2
 shipShape = pt2ToPoly shipPoly
 
 thrustShape :: Poly2
-thrustShape = pt2ToPoly [ Pt2 (-shipSize * 0.5, -shipSize * 1.1),
-                          Pt2 ( 0,              -shipSize * 1.9),
-                          Pt2 ( shipSize * 0.5, -shipSize * 1.1) ]
+thrustShape = pt2ToPoly [ Pt2 (-shipSize * 0.25, -shipSize * 0.55 ),
+                          Pt2 ( 0,               -shipSize * 0.85 ),
+                          Pt2 ( shipSize * 0.25, -shipSize * 0.55 ) ]
 
 shipIsDead :: Ship -> Ship
 shipIsDead ship
   | isNothing $ shipDiedAt ship = ship { shipDiedAt = Just 0 }
   | otherwise = ship
 
-turnRate :: Coord
-turnRate = 360
-
-shipColor :: IO ()
-shipColor = drawColor 1 1 1
-
-thrustColor :: IO ()
-thrustColor = drawColor 1 0 0
-
 drawThrust :: Bool -> IO ()
 drawThrust False = return ()
-drawThrust True  = thrustColor >> drawPoly thrustShape
+drawThrust True  = draw thrustColor >> drawPoly thrustShape
 
 turnShip :: ShipRotation -> Coord ->  Coord
-turnShip TurnShipLeft _  = turnRate
-turnShip TurnShipRight _ = -turnRate
+turnShip TurnShipLeft _  = shipTurnRate
+turnShip TurnShipRight _ = -shipTurnRate
 turnShip _ _             = 0
 
 shipStep :: TimeDelta -> Ship -> Ship
@@ -136,7 +128,8 @@ shipStep dt ship
         isDead _       = True
 
 shipUnderControl :: TimeDelta -> Ship -> Ship
-shipUnderControl dt ship =  ship { shipPos = p' }
+shipUnderControl dt ship =  ship { shipPos = p'
+                                 , shipBullets = stepBullets dt (shipBullets ship) }
   where p' = step dt forced
         forced = physForce accel torque (shipPos ship)
         torque = turnShip $ rotateShip ship
@@ -146,10 +139,12 @@ shipUnderControl dt ship =  ship { shipPos = p' }
         goFaster vel = vel + mulPt2 unitHeading dt
 
 shipDied :: TimeDelta -> Ship -> Ship
-shipDied dt ship =  ship { shipPos = p', shipDiedAt = dt' }
+shipDied dt ship =  ship { shipPos = p'
+                         , shipDiedAt = dt'
+                         , shipBullets = stepBullets dt (shipBullets ship) }
   where p' = step dt forced
         forced = physForce pos' torque (shipPos ship)
-        pos' _vel = Pt2 (0,0) -- _vel
+        pos' _vel = Pt2 (0,0)
         torque = turnShip StopShipTurning
         Just sdt' = shipDiedAt ship
         dt' = Just (dt + sdt')
@@ -160,5 +155,8 @@ setShipThrust b ship = ship { thrustShip = b }
 setShipRotation :: ShipRotation -> Ship -> Ship
 setShipRotation r ship = ship { rotateShip = r }
 
-shipWorldLines :: Ship -> [LinePt2 Coord]
-shipWorldLines ship = solidWorldLines $ shipPos ship
+stepBullets :: TimeDelta -> [Bullet] -> [Bullet]
+stepBullets dt = catMaybes . fmap ( expireMaybe . step dt )
+  where expireMaybe b = if bulletAge b > maxBulletAge
+                          then Nothing
+                          else Just b

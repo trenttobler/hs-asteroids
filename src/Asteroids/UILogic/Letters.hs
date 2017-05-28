@@ -8,7 +8,7 @@ module Asteroids.UILogic.Letters (
   , LetterShape, toDrawableLetter
   , letterShapes
 
-  , drawText, drawCenteredText
+  , drawLeftText, drawCenteredText, drawRightText
   ) where
 
 import           Asteroids.UILogic.Drawable
@@ -76,33 +76,45 @@ drawLetter h ch = exactC'
   where exactC' = fromMaybe upperC' $ H.lookup ch (letterLookup h)
         upperC' = fromMaybe (return ()) $ H.lookup (toUpper ch) (letterLookup h)
 
-drawCenteredText :: DrawableLetters -> Pt2 Coord -> [String] -> IO ()
-drawCenteredText letters pos s = let
-  sizeC = letterSizePt2 letters
-  posNextC' = moveTo $ sizeC * pt2 1 0
-  posNextL' = moveTo $ sizeC * pt2 0 (-1)
-  drawC' = drawLetter letters
-  drawL' line = innerDrawing $ do
-    moveTo ( sizeC * pt2 (-0.5 * fromIntegral (length line)) 0  )
-    sequence_ $ intersperse posNextC' $ fmap drawC' line
-  drawS' text = sequence_ $ intersperse posNextL'
-                          $ fmap drawL' text
-  draw' = innerDrawing $ do
-    moveTo pos
-    drawS' s
-  in draw'
+drawLeftText :: DrawableLetters -> Pt2 Coord -> [String] -> IO ()
+drawLeftText = drawText standardOrient
+  where leftOrientation _ = Pt2 (0, 0)
 
-drawText :: DrawableLetters -> Pt2 Coord -> [String] -> IO ()
-drawText letters pos s = let
+drawCenteredText :: DrawableLetters -> Pt2 Coord -> [String] -> IO ()
+drawCenteredText = drawText centeredOrient
+  where centeredOrient = standardOrient { orientStartL = startCentered }
+        startCentered len = Pt2 (-0.5 * fromIntegral len, 0)
+
+drawRightText :: DrawableLetters -> Pt2 Coord -> [String] -> IO ()
+drawRightText letters pos s = drawText rightOrient letters pos backwardLines
+  where rightOrient = standardOrient {orientNextC = pt2 (-1) 0 }
+        backwardLines = fmap reverse s
+
+data TextOrient = TextOrient
+  { orientNextC :: Pt2 Coord
+  , orientNextL :: Pt2 Coord
+  , orientStartL :: Int -> Pt2 Coord }
+
+standardOrient :: TextOrient
+standardOrient = TextOrient
+  { orientNextC = pt2 1 0
+  , orientNextL = pt2 0 (-1)
+  , orientStartL = startL' }
+  where startL' _ = pt2 0 0
+
+drawText :: TextOrient -> DrawableLetters -> Pt2 Coord -> [String] -> IO ()
+drawText orient letters pos s = let
   sizeC = letterSizePt2 letters
-  posNextC' = moveTo $ sizeC * pt2 1 0
-  posNextL' = moveTo $ sizeC * pt2 0 1
+  posNextC' = moveTo $ sizeC * orientNextC orient
+  posNextL' = moveTo $ sizeC * orientNextL orient
   drawC' = drawLetter letters
-  drawL' line = innerDrawing $ sequence_
-                             $ intersperse posNextC'
-                             $ fmap drawC' line
   drawS' text = sequence_ $ intersperse posNextL'
                           $ fmap drawL' text
+  drawL' line = innerDrawing $ do
+    let lineLen = length line
+    moveTo ( sizeC * orientStartL orient lineLen  )
+    sequence_ $ intersperse posNextC' $ fmap drawC' line
+
   draw' = innerDrawing $ do
     moveTo pos
     drawS' s

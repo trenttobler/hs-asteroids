@@ -18,6 +18,8 @@ library
   exposed-modules:     Asteroids
                      , Asteroids.GameLogic
                      , Asteroids.GameLogic.Asteroid
+                     , Asteroids.GameLogic.Bullet
+                     , Asteroids.GameLogic.Constants
                      , Asteroids.GameLogic.Game
                      , Asteroids.GameLogic.GameOptions
                      , Asteroids.GameLogic.KeyAction

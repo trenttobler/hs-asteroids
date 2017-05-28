@@ -99,7 +99,7 @@ updateGame state = do
   setLastTime state curTime
   let dt = realToFrac $ diffUTCTime curTime lastTime
   game <- getGame state
-  let game' = gameStep dt game
+  let game' = step dt game
   setGame state game'
 
 restoreScreen :: GameState -> IO ()

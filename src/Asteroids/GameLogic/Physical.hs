@@ -1,19 +1,15 @@
 module Asteroids.GameLogic.Physical
-  ( Physics(..)
+  ( Physics(..), worldLines, worldBoundary, hasCollision, noCollisions
+
   , Physical, physPos, physVel, physAngle, physSpin, solidLines
-  , TimeDelta
-  , Position
-  , Velocity
-  , Acceleration
-  , Angle
-  , Spin
-  , Torque
-  , SolidLine
-  , newPhys
-  , physForce
-  , withSolid
-  , solidWorldLines
+  , newPhys, physForce, withSolid
   , getUnitHeading
+
+  , TimeDelta
+  , Position, Velocity, Acceleration
+  , Angle, Spin, Torque
+
+  , SolidLine
   ) where
 
 import           Asteroids.Helpers
@@ -27,10 +23,30 @@ type Angle        = Coord
 type Spin         = Coord
 type Torque       = Spin -> Spin
 type SolidLine    = LinePt2 Coord
+type Rectangle    = LinePt2 Coord
 
 class Physics a where
   physical :: a -> Physical
   step :: TimeDelta -> a -> a
+  boundary :: a -> Rectangle
+
+worldLines :: Physics a => a -> [SolidLine]
+worldLines = solidWorldLines . physical
+
+worldBoundary :: Physics a => Position -> a -> Rectangle
+worldBoundary pos = bounds' . physPos . physical
+  where bounds' p = LinePt2 (p - pos,p + pos)
+
+hasCollision :: ( Physics a, Physics b ) => a -> b -> Bool
+hasCollision a b = inBounds && anyIntersection
+  where inBounds = boundary a `lineBoundaryCrossed` boundary b
+        anyIntersection = (not . null) intersections
+        intersections = crossedLinePairs aLines bLines
+        aLines = worldLines a
+        bLines = worldLines b
+
+noCollisions :: (Physics a, Physics b) => [a] -> b -> Bool
+noCollisions xs y = not (any (hasCollision y) xs)
 
 data Physical = Physical
   { physPos    :: Position
@@ -38,6 +54,7 @@ data Physical = Physical
   , physAngle  :: Angle
   , physSpin   :: Spin
   , solidLines :: [SolidLine]     }
+  deriving Eq
 
 instance Show Physical where
   show = showLabels "\n" [("pos:     ", show . physPos),
@@ -51,6 +68,7 @@ instance Drawable Physical
 instance Physics Physical where
   physical a = a
   step = physStep
+  boundary _ = undefined
 
 newPhys :: Pt2 Coord -> Pt2 Coord -> Coord -> Coord -> Physical
 newPhys pos vel angle spin
