@@ -12,7 +12,7 @@ import           Asteroids.UILogic.Drawable
 import           Rand
 
 data Asteroid = Asteroid {
-  asteroidDraw      :: Asteroid -> IO (),
+  asteroidDraw      :: IO (),
   asteroidSeed      :: Int,
   asteroidSize      :: Coord,
   asteroidPhys      :: Physical,
@@ -24,7 +24,10 @@ instance Show Asteroid
                          " (",        show (asteroidSize a), ")" ]
 
 instance Drawable Asteroid where
-  draw a = asteroidDraw a a
+  draw a = innerDrawing $ do
+    draw $ asteroidPhys a
+    draw asteroidColor
+    asteroidDraw a
 
 instance Physics Asteroid where
   physical = asteroidPhys
@@ -44,7 +47,7 @@ createRandomAsteroid :: AsteroidMass -> Int -> RandomState Asteroid
 createRandomAsteroid size seed = do
   pts <- randPts size
   pos <- createPos size
-  let asteroid = Asteroid { asteroidDraw = drawAsteroid poly
+  let asteroid = Asteroid { asteroidDraw = drawPoly poly
                           , asteroidSeed = seed
                           , asteroidSize = size
                           , asteroidPhys = pos `withSolid` polyPt2Lines pts
@@ -94,9 +97,3 @@ randPts size = do
   let pts = pt2PolarRadians <$> zip dists angles
       pts' = polyNormPt2 size pts
   return pts'
-
-drawAsteroid :: Poly2 -> Asteroid -> IO ()
-drawAsteroid poly a = innerDrawing $ do
-  draw $ asteroidPhys a
-  draw asteroidColor
-  drawPoly poly
