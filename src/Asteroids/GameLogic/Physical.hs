@@ -1,7 +1,7 @@
 module Asteroids.GameLogic.Physical
-  ( Physics(..), worldLines, worldBoundary, hasCollision, noCollisions
+  ( Physics(..), worldSolids, worldBoundary, hasCollision, noCollisions
 
-  , Physical, physPos, physVel, physAngle, physSpin, solidLines
+  , Physical, physPos, physVel, physAngle, physSpin
   , newPhys, physForce, withSolid
   , getUnitHeading
 
@@ -9,7 +9,7 @@ module Asteroids.GameLogic.Physical
   , Position, Velocity, Acceleration
   , Angle, Spin, Torque
 
-  , SolidLine
+  , Solid
   ) where
 
 import           Asteroids.Helpers
@@ -22,7 +22,7 @@ type Acceleration = Velocity -> Velocity
 type Angle        = Coord
 type Spin         = Coord
 type Torque       = Spin -> Spin
-type SolidLine    = LinePt2 Coord
+type Solid        = PolyPt2 Coord
 type Rectangle    = LinePt2 Coord
 
 class Physics a where
@@ -30,8 +30,18 @@ class Physics a where
   step :: TimeDelta -> a -> a
   boundary :: a -> Rectangle
 
-worldLines :: Physics a => a -> [SolidLine]
-worldLines = solidWorldLines . physical
+worldSolids :: Physics a => a -> [Solid]
+worldSolids o = fmap toWorld (physSolids p)
+  where p = physical o
+        toWorld poly = fmap toWorldPoint poly
+        toWorldPoint = translate' . rotate'
+        a = physAngle p
+        r = -a * pi / 180
+        (u', v') = (cos r, sin r)
+        (dx, dy) = pt2Tuple (physPos p)
+        rotate' pt = pt2 (u' * pt2X pt + v' * pt2Y pt)
+                         (u' * pt2Y pt - v' * pt2X pt)
+        translate' pt = pt + Pt2 (dx, dy)
 
 worldBoundary :: Physics a => Position -> a -> Rectangle
 worldBoundary pos = bounds' . physPos . physical
@@ -39,11 +49,11 @@ worldBoundary pos = bounds' . physPos . physical
 
 hasCollision :: ( Physics a, Physics b ) => a -> b -> Bool
 hasCollision a b = inBounds && anyIntersection
-  where inBounds = boundary a `lineBoundaryCrossed` boundary b
-        anyIntersection = (not . null) intersections
-        intersections = crossedLinePairs aLines bLines
-        aLines = worldLines a
-        bLines = worldLines b
+  where inBounds = boundary a `hasBoundaryOverlap` boundary b
+        anyIntersection = (not . null) $ do
+          p1 <- worldSolids a
+          p2 <- worldSolids b
+          polyPt2WindingIntersections [p1,p2]
 
 noCollisions :: (Physics a, Physics b) => [a] -> b -> Bool
 noCollisions xs y = not (any (hasCollision y) xs)
@@ -53,7 +63,7 @@ data Physical = Physical
   , physVel    :: Velocity
   , physAngle  :: Angle
   , physSpin   :: Spin
-  , solidLines :: [SolidLine]     }
+  , physSolids :: [Solid]     }
   deriving Eq
 
 instance Show Physical where
@@ -76,7 +86,7 @@ newPhys pos vel angle spin
              , physVel = vel
              , physAngle = angle
              , physSpin = spin
-             , solidLines = [] }
+             , physSolids = [] }
 
 physForce :: Acceleration -> Torque -> Physical -> Physical
 physForce accel torque old = old { physVel = vel', physSpin = spin' }
@@ -105,18 +115,6 @@ physStep dt old = old {physPos = pos', physAngle = heading' }
         heading' = modularInterval (0,360) $ physAngle old + physSpin old * dt
 
 
-withSolid :: Physical -> [SolidLine] -> Physical
-withSolid p s = p { solidLines = s }
+withSolid :: Physical -> [Solid] -> Physical
+withSolid p s = p { physSolids = s }
 
-solidWorldLines :: Physical -> [SolidLine]
-solidWorldLines p = fmap toWorldLine (solidLines p)
-  where toWorldLine line = LinePt2 ( toWorldPoint $ lineP1 line
-                                   , toWorldPoint $ lineP2 line )
-        toWorldPoint = translate' . rotate'
-        a = physAngle p
-        r = -a * pi / 180
-        (u', v') = (cos r, sin r)
-        (dx, dy) = pt2Tuple (physPos p)
-        rotate' pt = pt2 (u' * pt2X pt + v' * pt2Y pt)
-                         (u' * pt2Y pt - v' * pt2X pt)
-        translate' pt = pt + Pt2 (dx, dy)

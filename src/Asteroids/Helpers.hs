@@ -26,3 +26,16 @@ modularInterval (lower,upper) x =
 
 fromPolar :: Floating t => t -> t -> (t, t)
 fromPolar d a = (d * cos a, d * sin a)
+
+wrappedPairs :: [a] -> [(a,a)]
+wrappedPairs [] = []
+wrappedPairs xs = pairs x x (tail xs) []
+  where x = head xs
+        pairs :: x -> x -> [x] -> [(x,x)] -> [(x,x)]
+        pairs q' p qs pqs
+          | pqs `seq` False = undefined
+          | null qs = (p,q'):pqs
+          | otherwise = let q = head qs
+                            qs' = tail qs
+                            pqs' = (p, q) : pqs
+                        in pairs q' q qs' (seq pqs' pqs')

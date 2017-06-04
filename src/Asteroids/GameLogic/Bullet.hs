@@ -45,8 +45,8 @@ stepBullet dt bullet = bullet'
                          , bulletAge = age
                          , lastPos = physPos $ bulletPos bullet }
 
-tracer :: Bullet -> LinePt2 Coord
-tracer b = LinePt2 ( pt2Zero, dp + dp )
+tracer :: Bullet -> [Pt2 Coord]
+tracer b = [pt2Zero, dp]
   where p0 = physPos (bulletPos b)
         p1 = lastPos b
         dp = p0 - p1

@@ -1,11 +1,13 @@
 module LinePt2
   ( LinePt2(..), linePt2, lineP1, lineP2, lineDP
   , lineP1X, lineP1Y, lineP2X, lineP2Y, lineToPt2s
-  , linesCrossed, lineCrossPt2, lineBoundaryCrossed
+  , linesCrossed, lineCrossPt2, hasBoundaryOverlap
   , crossedLinePairsBrute, crossedLinePairs
 
-  , LineSide
+  , LineSide(..)
   , pointLineSide, lineSide
+
+  , pt2LineRightCrossingNumber
 
   , module Pt2
   ) where
@@ -111,8 +113,8 @@ lineCrossPt2 a b = pt2 x y
         x = ( aa * ( x3 - x4 ) - (x1 - x2 ) * bb ) / den
         y = ( aa * ( y3 - y4 ) - (y1 - y2 ) * bb ) / den
 
-lineBoundaryCrossed :: ( Num a, Ord a ) => LinePt2 a -> LinePt2 a -> Bool
-lineBoundaryCrossed a b = insideX && insideY
+hasBoundaryOverlap :: ( Num a, Ord a ) => LinePt2 a -> LinePt2 a -> Bool
+hasBoundaryOverlap a b = insideX && insideY
     where insideX = overlaps ax1 ax2 bx1 bx2
           insideY = overlaps ay1 ay2 by1 by2
           (ax1, ay1)        = pt2Tuple $ lineP1 a
@@ -120,4 +122,16 @@ lineBoundaryCrossed a b = insideX && insideY
           (bx1, by1)        = pt2Tuple $ lineP1 b
           (bx2, by2)        = pt2Tuple $ lineP2 b
           overlaps m n p q  = m <= q && p <= n
+
+pt2LineRightCrossingNumber :: (Eq a, Ord a, Num a) => Pt2 a -> LinePt2 a -> Int
+pt2LineRightCrossingNumber p (LinePt2 (p1,p2))
+  | y1 == y2 = 0
+  | y1 < y && y2 < y = 0
+  | y1 > y && y2 > y = 0
+  | y1 <= y && side == LeftSide = -1
+  | y1 >  y && side == RightSide = 1
+  | otherwise = 0
+  where y = pt2Y p
+        side = pointLineSide p (LinePt2 (p1,p2))
+        (y1,y2) = (pt2Y p1, pt2Y p2)
 

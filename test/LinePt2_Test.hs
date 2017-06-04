@@ -48,6 +48,76 @@ crossedLinePairsTests = TestLabel "crossedLinePairsTests" testCase'
   where label' = "crossedLinePairsTests pairsA pairsB"
         testCase' = TestCase $ assertEqual label' testPairs testPairs'
 
+rightTestCase t@(p, line, n) = TestLabel label' $ TestCase $ assertEqual label' n' n
+  where label' = show t
+        n' = pt2LineRightCrossingNumber p line
+
+rightTestCases = TestLabel "rightCrossingNumber" $ TestList $ fmap rightTestCase rightCrossSamples
+
+rightCrossSamples = -- through point
+                    [ (pt2 1 1, linePt2 1 1 1 2, 0)
+
+                    -- degenerate line (point)
+                    , (pt2 1 1, linePt2 2 1 2 1, 0)
+
+                    -- entirely above
+                    , (pt2 1 1, linePt2 2 3 2 2, 0)
+                    , (pt2 1 1, linePt2 2 2 2 3, 0)
+
+                    -- entirely below
+                    , (pt2 1 1, linePt2 2 0 2 (-1), 0)
+                    , (pt2 1 1, linePt2 2 (-1) 2 0, 0)
+
+                    -- touching and up
+                    , (pt2 1 1, linePt2 2 1 1 2, -1)
+                    , (pt2 1 1, linePt2 2 1 2 2, -1)
+                    , (pt2 1 1, linePt2 2 1 3 2, -1)
+
+                    -- crosses and up
+                    , (pt2 1 1, linePt2 2 0 1 2, -1)
+                    , (pt2 1 1, linePt2 2 0 2 2, -1)
+                    , (pt2 1 1, linePt2 2 0 3 2, -1)
+
+                    -- crosses and down
+                    , (pt2 1 1, linePt2 2 2 1 0, 1)
+                    , (pt2 1 1, linePt2 2 2 2 0, 1)
+                    , (pt2 1 1, linePt2 2 2 3 0, 1)
+
+                    -- touching and up
+                    , (pt2 1 1, linePt2 3 2 2 1, 1)
+                    , (pt2 1 1, linePt2 2 2 2 1, 1)
+                    , (pt2 1 1, linePt2 1 2 2 1, 1)
+
+                    -- touching and down
+                    , (pt2 1 1, linePt2 2 1 1 0, 0)
+                    , (pt2 1 1, linePt2 2 1 2 0, 0)
+                    , (pt2 1 1, linePt2 2 1 3 0, 0)
+
+                    -- entirely left
+                    , (pt2 1 4, linePt2 1 1 1 2, 0)
+                    , (pt2 1 4, linePt2 2 1 2 1, 0)
+                    , (pt2 1 4, linePt2 2 2 2 3, 0)
+                    , (pt2 1 4, linePt2 2 3 2 2, 0)
+                    , (pt2 1 4, linePt2 2 0 2 (-1), 0)
+                    , (pt2 1 4, linePt2 2 (-1) 2 0, 0)
+                    , (pt2 1 4, linePt2 2 1 1 2, 0)
+                    , (pt2 1 4, linePt2 2 1 2 2, 0)
+                    , (pt2 1 4, linePt2 2 1 3 2, 0)
+                    , (pt2 1 4, linePt2 2 0 1 2, 0)
+                    , (pt2 1 4, linePt2 2 0 2 2, 0)
+                    , (pt2 1 4, linePt2 2 0 3 2, 0)
+                    , (pt2 1 4, linePt2 2 2 1 0, 0)
+                    , (pt2 1 4, linePt2 2 2 2 0, 0)
+                    , (pt2 1 4, linePt2 2 2 3 0, 0)
+                    , (pt2 1 4, linePt2 3 2 2 1, 0)
+                    , (pt2 1 4, linePt2 2 2 2 1, 0)
+                    , (pt2 1 4, linePt2 2 1 3 1, 0)
+                    , (pt2 1 4, linePt2 2 1 1 0, 0)
+                    , (pt2 1 4, linePt2 2 1 2 0, 0)
+                    , (pt2 1 4, linePt2 2 1 3 0, 0) ]
+
+
 linePt2Tests = TestList [ linesCrossedTests
                         , lineCrossPt2Tests
-                        , crossedLinePairsTests ]
+                        , crossedLinePairsTests
+                        , rightTestCases ]

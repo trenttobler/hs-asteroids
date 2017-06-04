@@ -5,6 +5,11 @@ module PolyPt2
   , polyAreaMidPt2
   , polyNormPt2
   , polyPt2Lines
+  , pt2InsideWindingPoly
+  , pt2InsideAlternatingPoly
+
+  , pt2PolyCrossingNumber, polyPt2Intersections
+  , polyPt2WindingIntersections, polyPt2AlternatingIntersections
 
   , module LinePt2
   , module TriPt2
@@ -12,6 +17,7 @@ module PolyPt2
 
 import           LinePt2
 import           TriPt2
+import           Asteroids.Helpers
 
 type PolyPt2 a = [Pt2 a]
 
@@ -47,9 +53,38 @@ polyNormPt2 sz pts = fmap norm pts'
 
 polyPt2Lines :: [Pt2 a] -> [LinePt2 a]
 polyPt2Lines [] = []
-polyPt2Lines ps = wrappedPairs (head ps) ps []
+polyPt2Lines ps = fmap LinePt2 $ wrappedPairs ps
 
-wrappedPairs :: Pt2 a -> [Pt2 a] -> [LinePt2 a] -> [LinePt2 a]
-wrappedPairs _ [] _ = []
-wrappedPairs a [z] pqs = LinePt2 (z, a) : pqs
-wrappedPairs a (b:c:zs) pqs = wrappedPairs a (c:zs) (LinePt2 (b, c) : pqs)
+pt2PolyCrossingNumber :: (Eq a, Ord a, Num a) => Pt2 a -> [Pt2 a] -> Int
+pt2PolyCrossingNumber p ps = sum crossingNumbers
+  where crossingNumbers = fmap (pt2LineRightCrossingNumber p . LinePt2) sides
+        sides = wrappedPairs ps
+
+pt2InsideWindingPoly :: (Eq a, Ord a, Num a) => Pt2 a -> [Pt2 a] -> Bool
+pt2InsideWindingPoly p ps = pt2PolyCrossingNumber p ps > 0
+
+pt2InsideAlternatingPoly :: (Eq a, Ord a, Num a) => Pt2 a -> [Pt2 a] -> Bool
+pt2InsideAlternatingPoly p ps = odd n
+  where n = pt2PolyCrossingNumber p ps
+
+polyPt2WindingIntersections :: (Eq a, Ord a, Num a) =>
+  [PolyPt2 a] -> [(PolyPt2 a, PolyPt2 a)]
+polyPt2WindingIntersections = polyPt2Intersections pt2InsideWindingPoly
+
+polyPt2AlternatingIntersections :: (Eq a, Ord a, Num a) =>
+  [PolyPt2 a] -> [(PolyPt2 a, PolyPt2 a)]
+polyPt2AlternatingIntersections = polyPt2Intersections pt2InsideAlternatingPoly
+
+polyPt2Intersections :: (Eq a, Ord a, Num a) =>
+  (Pt2 a -> [Pt2 a] -> Bool) -> [PolyPt2 a] -> [(PolyPt2 a, PolyPt2 a)]
+polyPt2Intersections pinside ps = do
+  p1 <- ps
+  p2 <- ps
+  if p1 < p2 && intersects' p1 p2 then [(p1,p2)] else []
+  where intersects' [] _ = False
+        intersects' _ [] = False
+        intersects' p1 p2 = pinside (head p1) p2
+                         || pinside (head p2) p1
+                         || sidesCross p1 p2
+        sidesCross p1 p2 = any (anyCrossings $ polyPt2Lines p2) (polyPt2Lines p1)
+        anyCrossings lineList line = any (linesCrossed line) lineList

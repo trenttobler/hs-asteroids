@@ -10,7 +10,6 @@ import           Asteroids.GameLogic.Constants
 import           Asteroids.GameLogic.Ship
 import           Asteroids.UILogic.Drawable
 import           Data.List                    (intercalate, intersperse)
-import           Data.Maybe                   (catMaybes)
 import           Rand
 
 import           Asteroids.UILogic.TextScreen

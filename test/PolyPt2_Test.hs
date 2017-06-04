@@ -81,4 +81,31 @@ polyNormPt2Test (p,sz,name) = TestLabel name
 
 polyNormTestCases = fmap polyNormPt2Test testPolys
 
-polyPt2Tests = TestList [ TestList polyNormTestCases, TestList triPt2Tests ]
+
+testIPoly = fmap Pt2 [ (2,0), (2,8), (4,8), (4,2), (6,2)
+                     , (6,4), (0,4), (0,6), (8,6), (8,0) ]
+
+-- testIPoly = fmap Pt2 [ (2,0), (8,0), (8,6), (0,6), (0,4)
+--                      , (6,4), (6,2), (4,2), (4,8), (2,8) ]
+
+alternatingPts = [        (3,1), (5,1), (7,1)
+                 ,        (3,3),        (7,3)
+                 , (1,5),        (5,5), (7,5)
+                 ,        (3,7) ]
+windingPts = (3,5):alternatingPts
+samplePts = [(2 * x - 1, 2 * y - 1) | x <- [0..5], y <- [0..5]]
+
+intersectCases trueName truePts inside = fmap testCase' samplePts
+  where testCase' p = TestLabel (label' p) $ TestCase
+                    $ assertEqual (show p)
+                        (p `elem` truePts)
+                        (inside (Pt2 p) testIPoly)
+        label' p = trueName ++ " " ++ show p
+
+polyPt2Tests = TestList [ TestList polyNormTestCases
+                        , TestList triPt2Tests
+                        , TestList $ intersectCases "winding"
+                                        windingPts pt2InsideWindingPoly
+                        , TestList $ intersectCases "alternate"
+                                        alternatingPts pt2InsideAlternatingPoly]
+

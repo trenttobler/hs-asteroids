@@ -55,7 +55,7 @@ instance Physics Ship where
 createShip :: Position -> Angle -> Ship
 createShip pos heading = Ship
   { shipPos = newPhys pos pt2Zero heading 0
-              `withSolid` polyPt2Lines shipPoly
+              `withSolid` [shipPoly]
   , rotateShip = StopShipTurning
   , thrustShip = False
   , shipDiedAt = Nothing

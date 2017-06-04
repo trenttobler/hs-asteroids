@@ -50,7 +50,7 @@ createRandomAsteroid size seed = do
   let asteroid = Asteroid { asteroidDraw = drawPoly poly
                           , asteroidSeed = seed
                           , asteroidSize = size
-                          , asteroidPhys = pos `withSolid` polyPt2Lines pts
+                          , asteroidPhys = pos `withSolid` [pts]
                           , asteroidMaxPtDist = maxPt2Dist pts }
       poly = pt2ToPoly pts
   return asteroid
