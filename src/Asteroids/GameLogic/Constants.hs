@@ -51,4 +51,9 @@ bulletRange = 1.4
 maxBulletAge = bulletRange / bulletSpeed
 
 startingAsteroidCount :: Int
-startingAsteroidCount = 8
+startingAsteroidCount = 3
+
+largeAsteroid :: Coord
+tinyAsteroid :: Coord
+largeAsteroid = 0.10
+tinyAsteroid = 0.01

@@ -33,7 +33,7 @@ class Physics a where
 worldSolids :: Physics a => a -> [Solid]
 worldSolids o = fmap toWorld (physSolids p)
   where p = physical o
-        toWorld poly = fmap toWorldPoint poly
+        toWorld = fmap toWorldPoint
         toWorldPoint = translate' . rotate'
         a = physAngle p
         r = -a * pi / 180

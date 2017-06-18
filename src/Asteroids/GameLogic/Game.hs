@@ -88,8 +88,7 @@ coinInserted game =
 
 createRandomAsteroids :: Int -> RandomState [Asteroid]
 createRandomAsteroids level =
-  sequence [ createRandomAsteroid (sz s) s | s <- [1..level] ]
-  where sz s = 0.1000 / fromIntegral (1 + (s `mod` 10))
+  sequence [ createRandomAsteroid s largeAsteroid | s <- [1..level] ]
 
 gameStep :: TimeDelta -> Game -> Game
 gameStep dt game = case playStatus game of
@@ -97,7 +96,7 @@ gameStep dt game = case playStatus game of
 
   PlayingGame -> game
     { asteroids = asteroids'
-    , gameShip = isShipDead ship'
+    , gameShip = setBullets bullets' $ isShipDead ship'
     , playStatus = if gameOver' then GameOver else PlayingGame
 
     , gameScore = 1 + gameScore game }
@@ -110,8 +109,11 @@ gameStep dt game = case playStatus game of
 
         asteroids'' = stepAsteroids dt game
         bullets'' = shipBullets ship'
+
         asteroids' = concatMap (explosions blowUpAsteroid bullets'') asteroids''
-        bullets' = bullets'' -- need to get rid of bullets that have collided with asteroids.
+        bullets' = concatMap (explosions destroyBullet asteroids'') bullets''
+
+        destroyBullet _ = []
         explosions f bs a = if noCollisions bs a then [a] else f a
 
         gameOver' = any (hasCollision ship') asteroids'

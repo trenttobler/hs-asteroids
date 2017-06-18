@@ -53,7 +53,7 @@ polyNormPt2 sz pts = fmap norm pts'
 
 polyPt2Lines :: [Pt2 a] -> [LinePt2 a]
 polyPt2Lines [] = []
-polyPt2Lines ps = fmap LinePt2 $ wrappedPairs ps
+polyPt2Lines ps = LinePt2 <$> wrappedPairs ps
 
 pt2PolyCrossingNumber :: (Eq a, Ord a, Num a) => Pt2 a -> [Pt2 a] -> Int
 pt2PolyCrossingNumber p ps = sum crossingNumbers
@@ -80,7 +80,7 @@ polyPt2Intersections :: (Eq a, Ord a, Num a) =>
 polyPt2Intersections pinside ps = do
   p1 <- ps
   p2 <- ps
-  if p1 < p2 && intersects' p1 p2 then [(p1,p2)] else []
+  [(p1, p2) | p1 < p2 && intersects' p1 p2]
   where intersects' [] _ = False
         intersects' _ [] = False
         intersects' p1 p2 = pinside (head p1) p2

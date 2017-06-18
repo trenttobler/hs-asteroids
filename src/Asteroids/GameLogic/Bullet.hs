@@ -5,6 +5,7 @@ module Asteroids.GameLogic.Bullet
 
 import           Asteroids.GameLogic.Constants
 import           Asteroids.GameLogic.Physical
+import           Asteroids.Helpers
 import           Asteroids.UILogic.Drawable
 
 data Bullet = Bullet
@@ -18,8 +19,8 @@ instance Show Bullet where
 instance Drawable Bullet where
   draw bullet = innerDrawing $ do
     draw bulletColor
-    let shape = pt2ToPoly [ physPos $ bulletPos bullet ]
-    drawPoints shape
+    draw (bulletPos bullet)
+    mapM_ drawPoly bulletShape
 
 instance Physics Bullet where
   physical = bulletPos
@@ -27,7 +28,7 @@ instance Physics Bullet where
   boundary = worldBoundary (pt2 bulletSize bulletSize)
 
 newBullet :: Physical -> Bullet
-newBullet p = Bullet { bulletPos = newPhys pos' vel' angle' 0
+newBullet p = Bullet { bulletPos = newPhys pos' vel' angle' spin'
                      , lastPos = physPos p
                      , bulletAge = 0 }
   where unit = getUnitHeading p
@@ -36,11 +37,12 @@ newBullet p = Bullet { bulletPos = newPhys pos' vel' angle' 0
         vel' = vel + physVel p
         pos' = pos + physPos p
         angle' = physAngle p
-
+        spin' = 360
+                
 stepBullet :: TimeDelta -> Bullet -> Bullet
 stepBullet dt bullet = bullet'
   where age = dt + bulletAge bullet
-        p' = step dt (bulletPos bullet)
+        p' = step dt $ bulletPos bullet
         bullet' = bullet { bulletPos = p' `withSolid` [tracer bullet']
                          , bulletAge = age
                          , lastPos = physPos $ bulletPos bullet }
@@ -50,3 +52,8 @@ tracer b = [pt2Zero, dp]
   where p0 = physPos (bulletPos b)
         p1 = lastPos b
         dp = p0 - p1
+
+bulletShape :: [Poly2]
+bulletShape =
+  [ pt2ToPoly [Pt2 (-bulletSize,0), Pt2 (bulletSize,0)]
+  , pt2ToPoly [Pt2 (0,-bulletSize), Pt2 (0,bulletSize)] ]

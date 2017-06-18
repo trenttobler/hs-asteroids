@@ -1,11 +1,13 @@
-module Rand (
-  seededRandomSeq, mkRandomSeq,
+module Rand
+  ( module Control.Monad.Trans.State
 
-  RandomState, Random,
-  runRand, runSeedRand, randR, randRs,
+  , seededRandomSeq, mkRandomSeq
 
-  randPair, randPairs )
-where
+  , RandomState, Random, RandomSeq
+  , runRand, runSeedRand, randR, randRs
+
+  , randPair, randPairs
+  ) where
 
 import           Control.Applicative
 import           Control.Monad             (replicateM)
@@ -13,14 +15,15 @@ import           Control.Monad.Trans.State
 import           System.Random
 import           System.Random.TF
 
-type RandomState = State TFGen
+type RandomSeq = TFGen
+type RandomState = State RandomSeq
 
 -- | create a new random sequence for a given seed.
-seededRandomSeq::Int->TFGen
+seededRandomSeq::Int -> RandomSeq
 seededRandomSeq = mkTFGen
 
 -- | create a new random sequence using a random seed.
-mkRandomSeq::IO TFGen
+mkRandomSeq::IO RandomSeq
 mkRandomSeq = newTFGen
 
 runRand :: RandomState a -> IO a

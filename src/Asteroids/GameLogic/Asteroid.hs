@@ -11,18 +11,17 @@ import           Asteroids.Helpers
 import           Asteroids.UILogic.Drawable
 import           Rand
 
-data Asteroid = Asteroid {
-  asteroidDraw      :: IO (),
-  asteroidSeed      :: Int,
-  asteroidSize      :: Coord,
-  asteroidPhys      :: Physical,
-  asteroidMaxPtDist :: Coord
-}
+data Asteroid = Asteroid
+  { asteroidDraw      :: IO ()
+  , asteroidSeed      :: Int
+  , asteroidSize      :: Coord
+  , asteroidPhys      :: Physical
+  , asteroidMaxPtDist :: Coord
+  , asteroidRand      :: RandomSeq }
 
 instance Show Asteroid
   where show a = concat ["Asteroid#", show (asteroidSeed a),
                          " (",        show (asteroidSize a), ")" ]
-
 instance Drawable Asteroid where
   draw a = innerDrawing $ do
     draw $ asteroidPhys a
@@ -43,32 +42,51 @@ randomDistRange = (0.5,1.0)
 randomAngleBias :: Coord
 randomAngleBias = 6.0
 
-createRandomAsteroid :: AsteroidMass -> Int -> RandomState Asteroid
-createRandomAsteroid size seed = do
+createRandomAsteroid :: Int -> AsteroidMass -> RandomState Asteroid
+createRandomAsteroid seed size = do
+  d <- randR distR
+  a <- randR angleR
+  pos <- createPos (Pt2 $ fromPolar d a) size
+  createRandomAsteroid' seed size pos
+
+createRandomAsteroid' :: Int -> Coord -> Physical -> RandomState Asteroid
+createRandomAsteroid' seed size pos = do
   pts <- randPts size
-  pos <- createPos size
-  let asteroid = Asteroid { asteroidDraw = drawPoly poly
+  randSeq <- get
+  let poly = pt2ToPoly pts
+      asteroid = Asteroid { asteroidDraw = drawPoly poly
                           , asteroidSeed = seed
                           , asteroidSize = size
                           , asteroidPhys = pos `withSolid` [pts]
-                          , asteroidMaxPtDist = maxPt2Dist pts }
-      poly = pt2ToPoly pts
+                          , asteroidMaxPtDist = maxPt2Dist pts
+                          , asteroidRand = randSeq }
   return asteroid
 
 blowUpAsteroid :: Asteroid -> [Asteroid]
-blowUpAsteroid _todoAsteroid = []
+blowUpAsteroid a = let
+  rseq = asteroidRand a
+  normSz s = fmap (\x -> x / sum s) s
+  seed = asteroidSeed a
+  pos = physPos $ asteroidPhys a
+  sz = asteroidSize a
+  createRandomChild sz' = createPos pos sz' >>= createRandomAsteroid' seed sz'
+  blowUp = do
+    sz' <- randR (2, 6) >>= randRs (0.5, 1.5)
+    mapM createRandomChild
+         (fmap (sz *) (normSz sz'))
+  in if sz > tinyAsteroid
+      then evalState blowUp rseq
+      else []
 
-createPos :: Coord -> RandomState Physical
-createPos size = do
-  d <- randR distR
-  a <- randR angleR
+createPos :: Position -> Coord -> RandomState Physical
+createPos p size = do
   dx' <- randR dxR
   dy' <- randR dyR
   s <- randR dAngleR
-  let (x, y) = fromPolar d a
-      (dx, dy) = fmap (/ sqrt size) (dx', dy')
+  let (dx, dy) = (dx' / ss, dy' / ss )
+      ss = sqrt size
       ds = s / size
-  return $ newPhys (pt2 x y) (pt2 dx dy) 0 ds
+  return $ newPhys p (pt2 dx dy) 0 ds
 
 distR :: (Coord,Coord)
 angleR :: (Coord,Coord)
